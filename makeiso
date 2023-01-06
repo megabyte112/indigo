@@ -1,0 +1,15 @@
+#!/bin/bash
+
+echo "checking for existing working directory..."
+if [[ -d /tmp/indiso ]]
+then
+	echo "removing existing working directory..."
+	sudo rm -r /tmp/indiso
+	echo "done"
+fi
+
+echo "building iso..."
+
+sudo mkarchiso -v -w /tmp/indiso .
+
+echo "build complete."
