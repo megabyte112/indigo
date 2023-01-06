@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2034
 
-iso_name="archtestlol"
-iso_label="archlinux-testrun"
-iso_publisher="me lol"
-iso_application="live iso test"
-iso_version="$(date +%Y.%m.%d)"
+iso_name="indigo"
+iso_label="indigolinux"
+iso_publisher="The Indigo Team"
+iso_application="Indigo"
+iso_version="$(date +%Y-%m-%d-%H-%M-%S)"
 install_dir="arch"
 buildmodes=('iso')
 bootmodes=('bios.syslinux.mbr' 'bios.syslinux.eltorito'

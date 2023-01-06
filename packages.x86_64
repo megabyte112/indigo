@@ -1,16 +1,9 @@
-alsa-utils
-amd-ucode
-arch-install-scripts
-archinstall
-b43-fwcutter
 base
 bash
 bind
-brltty
 broadcom-wl
 btrfs-progs
 cloud-init
-cryptsetup
 darkhttpd
 ddrescue
 dhclient
@@ -42,8 +35,6 @@ irssi
 iw
 iwd
 jfsutils
-kitty-terminfo
-less
 lftp
 libfido2
 libusb-compat
@@ -105,7 +96,6 @@ systemd-resolvconf
 tcpdump
 terminus-font
 testdisk
-tmux
 tpm2-tss
 udftools
 usb_modeswitch
@@ -121,9 +111,9 @@ wvdial
 xfsprogs
 xl2tpd
 
-xorg
 xorg-server
-xorg-apps
 xorg-xinit
 lightdm
-xfce4
+bspwm
+neofetch
+alacritty
