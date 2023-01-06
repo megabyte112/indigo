@@ -6,7 +6,7 @@ iso_label="indigolinux"
 iso_publisher="The Indigo Team"
 iso_application="Indigo"
 iso_version="$(date +%Y-%m-%d-%H-%M-%S)"
-install_dir="arch"
+install_dir="indigo"
 buildmodes=('iso')
 bootmodes=('bios.syslinux.mbr' 'bios.syslinux.eltorito'
            'uefi-ia32.grub.esp' 'uefi-x64.grub.esp'
