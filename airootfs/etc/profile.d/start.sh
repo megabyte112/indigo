@@ -1,0 +1,3 @@
+#!/bin/bashc
+clear
+startx

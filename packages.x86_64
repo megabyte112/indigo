@@ -1,3 +1,4 @@
+amd-ucode
 base
 bash
 bind
@@ -42,7 +43,6 @@ linux
 linux-atm
 linux-firmware
 linux-firmware-marvell
-livecd-sounds
 lsscsi
 lvm2
 lynx
@@ -113,7 +113,6 @@ xl2tpd
 
 xorg-server
 xorg-xinit
-lightdm
 bspwm
 neofetch
 alacritty
