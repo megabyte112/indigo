@@ -8,6 +8,8 @@ echo "mkindiso, by the indigo team"
 
 echo ""
 
+sleep 1
+
 echo "installer directory:" $INSTALLER_FINAL_DIR
 echo "working directory:" $WORK_DIR
 
@@ -21,22 +23,23 @@ sudo echo "thank you <3"
 
 echo ""
 
-sleep 0.5
-
 echo "checking for existing install script..."
+sleep 0.5
 if [[ -d $INSTALLER_FINAL_DIR ]]
 then
 	echo "removing previous install script..."
+	sleep 0.5
 	rm -rf $INSTALLER_FINAL_DIR
 	echo "removed install script"
 fi
 
 echo ""
 
-sleep 0.5
-
 echo "cloning installer..."
+sleep 1
+echo ""
 git clone https://github.com/megabyte112/indigo-installer.git $INSTALLER_FINAL_DIR
+echo ""
 echo "finished cloning installer"
 
 echo ""
@@ -66,4 +69,4 @@ echo "building iso..."
 
 sleep 3
 
-sudo mkarchiso -v -w /tmp/indiso . && echo "build complete :D" || echo "build failed :("
+sudo mkarchiso -v -w $WORK_DIR . && echo -e "\nbuild complete :D\ncheck the 'out' folder for your iso." || echo -e "\nbuild failed :("
