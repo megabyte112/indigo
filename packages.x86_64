@@ -24,6 +24,7 @@ exfatprogs
 f2fs-tools
 fatresize
 fsarchiver
+git
 gnu-netcat
 gpart
 gpm
@@ -106,4 +107,3 @@ wpa_supplicant
 wvdial
 xfsprogs
 xl2tpd
-git
