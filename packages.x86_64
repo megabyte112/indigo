@@ -57,7 +57,6 @@ mkinitcpio-archiso
 mkinitcpio-nfs-utils
 modemmanager
 mtools
-nano
 nbd
 ndisc6
 nfs-utils
@@ -69,7 +68,6 @@ open-iscsi
 open-vm-tools
 openconnect
 openssh
-openvpn
 partclone
 parted
 partimage
