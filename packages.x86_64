@@ -1,5 +1,6 @@
 amd-ucode
 arch-install-scripts
+archlinux-keyring
 base
 bash
 bind
