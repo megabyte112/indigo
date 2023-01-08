@@ -20,12 +20,4 @@ However this is only test and cant really much be done as the installer is not y
 Either way,
 LONG LIVE INDIGO!
 
-@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@
-     @@@@     
-     @@@@
-     @@@@
-     @@@@
-     @@@@
-@@@@@@@@@@@@@@
-@@@@@@@@@@@@@@
+
