@@ -42,8 +42,6 @@ echo "[mkindiso] finished cloning installer"
 
 echo ""
 
-sleep 0.5
-
 echo "[mkindiso] checking for existing working directory..."
 sleep 0.5
 if [[ -d $WORK_DIR ]]
@@ -68,3 +66,9 @@ echo "[mkindiso] building iso..."
 sleep 3
 
 sudo mkarchiso -v -w $WORK_DIR . && echo -e "\n[mkindiso] build complete :D\n[mkindiso] check the 'out' folder for your iso." || echo -e "\n[mkindiso] build failed :("
+
+echo ""
+echo "[mkindiso] cleaning up working directory (at $WORK_DIR)..."
+sudo rm -rf $WORK_DIR
+echo "[mkindiso] done!"
+
