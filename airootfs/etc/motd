@@ -1,5 +1,7 @@
-Welcome to the Indigo ISO Live Environment (Indiso).
+[38;2;23;147;209m
+Welcome to the Indigo Live ISO (Indiso).
 
-To install [38;2;23;147;209mIndigo[0m, run the installer:
+To install Indigo, run the installer:
 > ./install
 
+[0m
