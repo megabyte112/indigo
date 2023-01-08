@@ -1,23 +1,37 @@
-# indigo
-An Operating System based on Arch Linux, designed to look good right out of the box.
+# Welcome to Indigo!
 
-Welcome to Indigo!
+An Arch-based Linux distro that is meant to look good right out of the box, with pre-configured `bspwm`, `dwm`, and `Qtile` window managers, possibly with more on the way.
 
-An Arch based Linux distro that is meant to look good right out of the box, with pre-configured BSPWM, DWM and Qtile** window managers respectfully,(with maybe more on the way) 
-It will ship with: 
--The catppuccin gtk mocha theme with its own cursors and icons;
--a pre-configured polybar;
--pre-configured alacritty terminal;
--fully set up lightdm;
--mesa drivers for both Intel,AMD and Nvidia users;
--fully usable AUR through yay and pacman;
--and much more
 
-Currently there is only a version of this where the iso will have to be compiled on your own accord but sooner or later we will release a precompiled version as well that will be ready for use and install.
+Indigo includes:
+- The [Catppuccin](https://github.com/catppuccin/catppuccin) Mocha theme, including cursors and icons
+- A preconfigured, and riced, desktop environment or window manager, chosen by the user
+- Preconfigured LightDM
+- GPU drivers (mesa)
+- Fully functional package management via pacman and yay
+- Plus much more!
 
-However this is only test and cant really much be done as the installer is not yet finished.
+## Building
 
-Either way,
+You must use Arch Linux (or some Arch-based distro, like Manjaro, EndeavourOS, or even Indigo itself!) to compile Indigo.
+
+Install `archiso`
+```
+sudo pacman -S archiso
+```
+
+Clone this repository
+```
+git clone https://github.com/megabyte112/indigo.git && cd indigo
+```
+
+Use the `mkindiso` script to compile
+```
+./mkindiso
+```
+
+## Footnotes
+
+Currently, this is only a test - Indigo is not yet in a usable state.
+
 LONG LIVE INDIGO!
-
-
