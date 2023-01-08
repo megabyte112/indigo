@@ -1,0 +1,5 @@
+#!/bin/bash
+
+echo "Installer isn't ready yet - you'll have to install manually :("
+
+#python /etc/indigo-installer/indigo-installer.py

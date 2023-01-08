@@ -1,0 +1,72 @@
+#!/bin/bash
+
+WORK_DIR=/tmp/indiso-build
+INSTALLER_FINAL_DIR=airootfs/etc/indigo-installer
+
+
+echo "mkindiso, by the indigo team"
+
+echo ""
+
+sleep 1
+
+echo "installer directory:" $INSTALLER_FINAL_DIR
+echo "working directory:" $WORK_DIR
+
+echo ""
+
+sleep 1
+
+echo "can has sudo??"
+
+sudo echo "thank you <3"
+
+echo ""
+
+echo "checking for existing install script..."
+sleep 0.5
+if [[ -d $INSTALLER_FINAL_DIR ]]
+then
+	echo "removing previous install script..."
+	sleep 0.5
+	rm -rf $INSTALLER_FINAL_DIR
+	echo "removed install script"
+fi
+
+echo ""
+
+echo "cloning installer..."
+sleep 1
+echo ""
+git clone https://github.com/megabyte112/indigo-installer.git $INSTALLER_FINAL_DIR
+echo ""
+echo "finished cloning installer"
+
+echo ""
+
+sleep 0.5
+
+echo "checking for existing working directory..."
+if [[ -d $WORK_DIR ]]
+then
+	echo "removing existing working directory..."
+	sudo rm -r $WORK_DIR
+	echo "removed working directory"
+fi
+
+echo ""
+
+sleep 0.5
+
+echo "okay, let's do this!!"
+echo "prepare yourself - and enjoy the wait."
+
+sleep 1
+
+echo ""
+
+echo "building iso..."
+
+sleep 3
+
+sudo mkarchiso -v -w $WORK_DIR . && echo -e "\nbuild complete :D\ncheck the 'out' folder for your iso." || echo -e "\nbuild failed :("
