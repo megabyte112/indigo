@@ -8,8 +8,8 @@ echo "[mkindiso] mkindiso, by the indigo team"
 
 echo ""
 
-echo "[mkindiso] installer directory:" $INSTALLER_FINAL_DIR
-echo "[mkindiso] working directory:" $WORK_DIR
+echo "[mkindiso] indigo-installer directory:" $INSTALLER_FINAL_DIR
+echo "[mkindiso] mkindiso working directory:" $WORK_DIR
 
 echo ""
 
@@ -33,12 +33,31 @@ fi
 
 echo ""
 
+sleep 1
+
+echo "[mkindiso] git branch to clone indigo-installer (leave blank for main): "
+echo -n "[mkindiso] > "
+read branch
+
+echo ""
 echo "[mkindiso] cloning installer..."
 sleep 1
 echo ""
-git clone https://github.com/megabyte112/indigo-installer.git $INSTALLER_FINAL_DIR
+
+if [ "$branch" == "" ]; then
+	git clone https://github.com/megabyte112/indigo-installer.git $INSTALLER_FINAL_DIR && done=1 || done=0
+else
+	git clone -b $branch --single-branch https://github.com/megabyte112/indigo-installer.git $INSTALLER_FINAL_DIR && done=1 || done=0
+fi
+
 echo ""
-echo "[mkindiso] finished cloning installer"
+
+if [ $done == 1 ]; then
+	echo "[mkindiso] finished cloning installer"
+else
+	echo "[mkindiso] git clone failed :("
+	exit 1
+fi
 
 echo ""
 
@@ -48,7 +67,7 @@ if [[ -d $WORK_DIR ]]
 then
 	echo "[mkindiso] removing existing working directory..."
 	sleep 0.5
-	sudo rm -r $WORK_DIR
+	sudo rm -rf $WORK_DIR
 	echo "[mkindiso] removed working directory"
 fi
 
@@ -56,19 +75,42 @@ echo ""
 
 sleep 0.5
 
+echo -n "[mkindiso] ready to begin compilation? [Y/n]: "
+read ready
+
+if [[ ("$ready" != "") && ("$ready" != "Y") && ("$ready" != "y") ]]; then
+	echo "[mkindiso] aborting..."
+	exit 1
+fi
+
+echo ""
 echo "[mkindiso] okay, let's do this!!"
+sleep 0.5
 echo "[mkindiso] prepare yourself - and enjoy the wait."
 
 echo ""
+
+sleep 0.5
 
 echo "[mkindiso] building iso..."
 
 sleep 3
 
-sudo mkarchiso -v -w $WORK_DIR . && echo -e "\n[mkindiso] build complete :D\n[mkindiso] check the 'out' folder for your iso." || echo -e "\n[mkindiso] build failed :("
+sudo mkarchiso -v -w $WORK_DIR . && complete=1 || complete=0
+
+if [ $complete == 1 ]; then
+	echo ""
+	echo "[mkindiso] build complete :D"
+else
+	echo ""
+	echo "[mkindiso] build failed :("
+	exit 1
+fi
 
 echo ""
 echo "[mkindiso] cleaning up working directory (at $WORK_DIR)..."
 sudo rm -rf $WORK_DIR
 echo "[mkindiso] done!"
+echo "[mkindiso] check the 'out' folder for your iso file."
+exit 0
 
