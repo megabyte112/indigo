@@ -1,5 +1,6 @@
 #!/bin/bash
 
 echo "Installer isn't ready yet - you'll have to install manually :("
+echo "if you really wanna risk damaging your PC, venture forth within this script, and uncomment the python call."
 
-#python /etc/indigo-installer/indigo-installer.py
+# python /etc/indigo-installer/indigoinstaller.py
