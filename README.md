@@ -1,6 +1,6 @@
 # Welcome to Indigo!
 
-An Arch-based Linux distro that is meant to look good right out of the box, with pre-configured `bspwm`, `dwm`, and `Qtile` window managers, possibly with more on the way.
+An Arch-based Linux distro that is meant to look good right out of the box.
 
 
 Indigo includes:
