@@ -13,67 +13,84 @@ echo "[mkindiso] mkindiso working directory:" $WORK_DIR
 
 echo ""
 
-sleep 1
+# check if root
+if [ "$(whoami)" != "root" ]; then
+	echo "[mkindiso] you must be root to run this script"
+	exit 1
+fi
 
-echo "[mkindiso] can has sudo??"
-
-sudo echo "[mkindiso] thank you <3"
-
-echo ""
-
-echo "[mkindiso] checking for existing install script..."
-sleep 0.5
-if [[ -d $INSTALLER_FINAL_DIR ]]
+# check if mkarchiso is installed
+if ! command -v mkarchiso &> /dev/null
 then
-	echo "[mkindiso] removing previous install script..."
-	sleep 0.5
-	rm -rf $INSTALLER_FINAL_DIR
-	echo "[mkindiso] removed install script"
-fi
-
-echo ""
-
-sleep 1
-
-echo "[mkindiso] git branch to clone indigo-installer (leave blank for main): "
-echo -n "[mkindiso] > "
-read branch
-
-echo ""
-echo "[mkindiso] cloning installer..."
-sleep 1
-echo ""
-
-if [ "$branch" == "" ]; then
-	git clone https://github.com/megabyte112/indigo-installer.git $INSTALLER_FINAL_DIR && done=1 || done=0
-else
-	git clone -b $branch --single-branch https://github.com/megabyte112/indigo-installer.git $INSTALLER_FINAL_DIR && done=1 || done=0
-fi
-
-echo ""
-
-if [ $done == 1 ]; then
-	echo "[mkindiso] finished cloning installer"
-else
-	echo "[mkindiso] git clone failed :("
+	echo "[mkindiso] mkarchiso is not installed"
+	echo "[mkindiso] install mkarchiso and try again"
 	exit 1
 fi
 
 echo ""
 
-echo "[mkindiso] checking for existing working directory..."
-sleep 0.5
-if [[ -d $WORK_DIR ]]
+echo "[mkindiso] checking for existing install script..."
+if [[ -d $INSTALLER_FINAL_DIR ]]
 then
-	echo "[mkindiso] removing existing working directory..."
-	sleep 0.5
-	sudo rm -rf $WORK_DIR
-	echo "[mkindiso] removed working directory"
+	echo ""
+	echo "[mkindiso] use existing install script? [Y/n]: "
+	echo -n "[mkindiso] > "
+	read use_existing
+	if [[ ("$use_existing" != "") && ("$use_existing" != "Y") && ("$use_existing" != "y") ]]; then
+		echo "[mkindiso] removing existing install script..."
+		rm -rf $INSTALLER_FINAL_DIR
+		echo "[mkindiso] removed install script"
+
+		echo ""
+		echo "[mkindiso] git repo to clone indigo-installer (user/repo)"
+		echo "[mkindiso] (leave blank for megabyte112/indigo-installer):"
+		echo -n "[mkindiso] > "
+		read repo
+
+		echo ""
+		echo "[mkindiso] git branch to clone"
+		echo "[mkindiso] (leave blank for main): "
+		echo -n "[mkindiso] > "
+		read branch
+
+		echo ""
+		echo "[mkindiso] cloning installer..."
+		echo ""
+
+		if [[ "$repo" == "" ]]; then
+			repo="megabyte112/indigo-installer"
+		fi
+
+		if [[ "$branch" == "" ]]; then
+			branch="main"
+		fi
+
+		git clone https://github.com/'$repo'.git $INSTALLER_FINAL_DIR -b '$branch' && done=1 || done=0
+
+		echo ""
+
+		if [ $done == 1 ]; then
+			echo "[mkindiso] finished cloning installer"
+		else
+			echo "[mkindiso] git clone failed :("
+			exit 1
+		fi
+	else
+		echo "[mkindiso] using existing install script"
+	fi
 fi
 
 echo ""
 
-sleep 0.5
+echo "[mkindiso] checking for existing working directory..."
+if [[ -d $WORK_DIR ]]
+then
+	echo "[mkindiso] removing existing working directory..."
+	rm -rf $WORK_DIR
+	echo "[mkindiso] removed working directory"
+fi
+
+echo ""
 
 echo -n "[mkindiso] ready to begin compilation? [Y/n]: "
 read ready
@@ -85,16 +102,11 @@ fi
 
 echo ""
 echo "[mkindiso] okay, let's do this!!"
-sleep 0.5
 echo "[mkindiso] prepare yourself - and enjoy the wait."
 
 echo ""
 
-sleep 0.5
-
 echo "[mkindiso] building iso..."
-
-sleep 3
 
 sudo mkarchiso -v -w $WORK_DIR . && complete=1 || complete=0
 
@@ -108,8 +120,21 @@ else
 fi
 
 echo ""
-echo "[mkindiso] cleaning up working directory (at $WORK_DIR)..."
-sudo rm -rf $WORK_DIR
+
+# ask to deleet working directory
+echo "[mkindiso] remove working directory? [Y/n]: "
+echo -n "[mkindiso] > "
+read delete
+
+if [[ ("$delete" != "") && ("$delete" != "Y") && ("$delete" != "y") ]]; then
+	echo "[mkindiso] not deleting working directory"
+else
+	echo "[mkindiso] cleaning up working directory (at $WORK_DIR)..."
+	rm -rf $WORK_DIR
+	echo "[mkindiso] removed working directory"
+fi
+
+echo ""
 echo "[mkindiso] done!"
 echo "[mkindiso] check the 'out' folder for your iso file."
 exit 0
