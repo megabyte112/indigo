@@ -137,9 +137,8 @@ echo "[mkindiso] can has sudo again??"
 sudo mkarchiso -v -w $WORK_DIR . && complete=1 || complete=0
 
 if [ $complete == 1 ]; then
-	sha512sum=$(sha512sum out/indigo-*.iso | awk '{print $1}')
-	echo $sha512sum > out/indigo-iso.sha512sum
-	echo ""
+	iso=$(ls out/indigo-*.iso | tail -n 1)
+	echo $(sha512sum $iso) > out/$iso.sha512sum
 	echo "[mkindiso] build complete :D"
 	if [ $notify == 1 ]; then
 		notify-send "Indigo is ready!" "Build complete :D"
