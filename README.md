@@ -6,14 +6,14 @@ An Arch-based Linux distro, designed to look good right out of the box.
 Indigo includes:
 - The [Catppuccin](https://github.com/catppuccin/catppuccin) Mocha theme, including cursors and icons
 - A preconfigured and riced desktop environment or window manager, chosen by the user
-- GPU drivers using `mesa`
 - Fully functional package management via `pacman`
 - AUR support with `yay` or other similar AUR helpers
+- Incredibly modular installer, for the tinkerers out there
 - Plus much more!
 
 ## Building
 
-You must use Arch Linux (or some Arch-based distro, like Manjaro, EndeavourOS, or even Indigo itself!) to compile Indigo.
+You must use Arch Linux (or an Arch-based distro, like Manjaro, EndeavourOS, or even Indigo itself!) to compile Indigo.
 
 Install `archiso`
 ```
