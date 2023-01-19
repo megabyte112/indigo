@@ -83,7 +83,10 @@ then
 	read use_existing
 	if [[ ("$use_existing" != "") && ("$use_existing" != "Y") && ("$use_existing" != "y") ]]; then
 		echo "[mkindiso] removing existing install script..."
-		rm -rf $INSTALLER_FINAL_DIR
+		echo ""
+		echo "[mkindiso] can has sudo??"
+		sudo rm -rf $INSTALLER_FINAL_DIR
+		echo ""
 		echo "[mkindiso] removed install script"
 
 		installinstaller
@@ -101,7 +104,7 @@ if [[ -d $WORK_DIR ]]
 then
 	echo "[mkindiso] removing existing working directory..."
 	echo ""
-	echo "[mkindiso] can has sudo??"
+	echo "[mkindiso] please can has sudo??"
 	sudo rm -rf $WORK_DIR
 	echo ""
 	echo "[mkindiso] removed working directory"
@@ -137,13 +140,13 @@ if [ $complete == 1 ]; then
 	echo ""
 	echo "[mkindiso] build complete :D"
 	if [ $notify == 1 ]; then
-		notify-send notify-send "Indigo is ready!" "Build complete :D"
+		notify-send "Indigo is ready!" "Build complete :D"
 	fi
 else
 	echo ""
 	echo "[mkindiso] build failed :("
 	if [ $notify == 1 ]; then
-		notify-send notify-send "Indigo failed to compile." "Build failed :("
+		notify-send "Indigo failed to compile." "Build failed :("
 	fi
 	exit 1
 fi
