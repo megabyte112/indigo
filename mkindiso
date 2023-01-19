@@ -13,9 +13,46 @@ echo "[mkindiso] mkindiso working directory:" $WORK_DIR
 
 echo ""
 
+installinstaller(){
+	echo ""
+	echo "[mkindiso] git repo to clone indigo-installer (user/repo)"
+	echo "[mkindiso] (leave blank for megabyte112/indigo-installer):"
+	echo -n "[mkindiso] > "
+	read repo
+
+	echo ""
+	echo "[mkindiso] git branch to clone"
+	echo "[mkindiso] (leave blank for main): "
+	echo -n "[mkindiso] > "
+	read branch
+
+	echo ""
+	echo "[mkindiso] cloning installer..."
+	echo ""
+
+	if [[ "$repo" == "" ]]; then
+		repo="megabyte112/indigo-installer"
+	fi
+
+	if [[ "$branch" == "" ]]; then
+		branch="main"
+	fi
+
+	git clone https://github.com/$repo.git $INSTALLER_FINAL_DIR -b $branch && done=1 || done=0
+
+	echo ""
+
+	if [ $done == 1 ]; then
+		echo "[mkindiso] finished cloning installer"
+	else
+		echo "[mkindiso] git clone failed :("
+		exit 1
+	fi
+}
+
 # check if root
-if [ "$(whoami)" != "root" ]; then
-	echo "[mkindiso] you must be root to run this script"
+if [ "$(whoami)" == "root" ]; then
+	echo "[mkindiso] do not run this script as root!"
 	exit 1
 fi
 
@@ -25,6 +62,14 @@ then
 	echo "[mkindiso] mkarchiso is not installed"
 	echo "[mkindiso] install mkarchiso and try again"
 	exit 1
+fi
+
+# check if the user has notify-send, do as user
+if command -v notify-send &> /dev/null
+then
+	notify=1
+else
+	notify=0
 fi
 
 echo ""
@@ -41,43 +86,12 @@ then
 		rm -rf $INSTALLER_FINAL_DIR
 		echo "[mkindiso] removed install script"
 
-		echo ""
-		echo "[mkindiso] git repo to clone indigo-installer (user/repo)"
-		echo "[mkindiso] (leave blank for megabyte112/indigo-installer):"
-		echo -n "[mkindiso] > "
-		read repo
-
-		echo ""
-		echo "[mkindiso] git branch to clone"
-		echo "[mkindiso] (leave blank for main): "
-		echo -n "[mkindiso] > "
-		read branch
-
-		echo ""
-		echo "[mkindiso] cloning installer..."
-		echo ""
-
-		if [[ "$repo" == "" ]]; then
-			repo="megabyte112/indigo-installer"
-		fi
-
-		if [[ "$branch" == "" ]]; then
-			branch="main"
-		fi
-
-		git clone https://github.com/'$repo'.git $INSTALLER_FINAL_DIR -b '$branch' && done=1 || done=0
-
-		echo ""
-
-		if [ $done == 1 ]; then
-			echo "[mkindiso] finished cloning installer"
-		else
-			echo "[mkindiso] git clone failed :("
-			exit 1
-		fi
+		installinstaller
 	else
 		echo "[mkindiso] using existing install script"
 	fi
+else
+	installinstaller
 fi
 
 echo ""
@@ -86,7 +100,10 @@ echo "[mkindiso] checking for existing working directory..."
 if [[ -d $WORK_DIR ]]
 then
 	echo "[mkindiso] removing existing working directory..."
-	rm -rf $WORK_DIR
+	echo ""
+	echo "[mkindiso] can has sudo??"
+	sudo rm -rf $WORK_DIR
+	echo ""
 	echo "[mkindiso] removed working directory"
 fi
 
@@ -100,22 +117,34 @@ if [[ ("$ready" != "") && ("$ready" != "Y") && ("$ready" != "y") ]]; then
 	exit 1
 fi
 
+
 echo ""
 echo "[mkindiso] okay, let's do this!!"
 echo "[mkindiso] prepare yourself - and enjoy the wait."
 
+# notify user as $USER
+if [ $notify == 1 ]; then
+	notify-send "Indigo is compiling." "You'll be notified when it's complete."
+fi
+
 echo ""
-
 echo "[mkindiso] building iso..."
-
+echo ""
+echo "[mkindiso] can has sudo again??"
 sudo mkarchiso -v -w $WORK_DIR . && complete=1 || complete=0
 
 if [ $complete == 1 ]; then
 	echo ""
 	echo "[mkindiso] build complete :D"
+	if [ $notify == 1 ]; then
+		notify-send notify-send "Indigo is ready!" "Build complete :D"
+	fi
 else
 	echo ""
 	echo "[mkindiso] build failed :("
+	if [ $notify == 1 ]; then
+		notify-send notify-send "Indigo failed to compile." "Build failed :("
+	fi
 	exit 1
 fi
 
@@ -130,7 +159,9 @@ if [[ ("$delete" != "") && ("$delete" != "Y") && ("$delete" != "y") ]]; then
 	echo "[mkindiso] not deleting working directory"
 else
 	echo "[mkindiso] cleaning up working directory (at $WORK_DIR)..."
-	rm -rf $WORK_DIR
+	echo ""
+	echo "[mkindiso] can has sudo one more time??"
+	sudo rm -rf $WORK_DIR
 	echo "[mkindiso] removed working directory"
 fi
 
@@ -138,4 +169,3 @@ echo ""
 echo "[mkindiso] done!"
 echo "[mkindiso] check the 'out' folder for your iso file."
 exit 0
-
