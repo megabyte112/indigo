@@ -15,7 +15,7 @@ echo ""
 
 installinstaller(){
 	echo ""
-	echo "[mkindiso] git repo to clone indigo-installer (user/repo)"
+	echo "[mkindiso] git repo to clone (format 'user/repo')"
 	echo "[mkindiso] (leave blank for megabyte112/indigo-installer):"
 	echo -n "[mkindiso] > "
 	read repo
@@ -127,7 +127,7 @@ echo "[mkindiso] prepare yourself - and enjoy the wait."
 
 # notify user as $USER
 if [ $notify == 1 ]; then
-	notify-send "Indigo is compiling." "You'll be notified when it's complete."
+	notify-send "Building Indigo" "You'll be notified when it's complete."
 fi
 
 echo ""
@@ -138,7 +138,7 @@ sudo mkarchiso -v -w $WORK_DIR . && complete=1 || complete=0
 
 if [ $complete == 1 ]; then
 	iso=$(ls out/indigo-*.iso | tail -n 1)
-	echo $(sha512sum $iso) > out/$iso.sha512sum
+	echo $(sha512sum $iso) > $iso.sha512sum
 	echo "[mkindiso] build complete :D"
 	if [ $notify == 1 ]; then
 		notify-send "Indigo is ready!" "Build complete :D"
@@ -147,7 +147,7 @@ else
 	echo ""
 	echo "[mkindiso] build failed :("
 	if [ $notify == 1 ]; then
-		notify-send "Indigo failed to compile." "Build failed :("
+		notify-send "Build failed" ":("
 	fi
 	exit 1
 fi
