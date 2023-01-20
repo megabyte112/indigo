@@ -13,104 +13,153 @@ echo "[mkindiso] mkindiso working directory:" $WORK_DIR
 
 echo ""
 
-sleep 1
+installinstaller(){
+	echo ""
+	echo "[mkindiso] git repo to clone (format 'user/repo')"
+	echo "[mkindiso] (leave blank for megabyte112/indigo-installer):"
+	echo -n "[mkindiso] > "
+	read repo
 
-echo "[mkindiso] can has sudo??"
+	echo ""
+	echo "[mkindiso] git branch to clone"
+	echo "[mkindiso] (leave blank for main): "
+	echo -n "[mkindiso] > "
+	read branch
 
-sudo echo "[mkindiso] thank you <3"
+	echo ""
+	echo "[mkindiso] cloning installer..."
+	echo ""
+
+	if [[ "$repo" == "" ]]; then
+		repo="megabyte112/indigo-installer"
+	fi
+
+	if [[ "$branch" == "" ]]; then
+		branch="main"
+	fi
+
+	git clone https://github.com/$repo.git $INSTALLER_FINAL_DIR -b $branch && done=1 || done=0
+
+	echo ""
+
+	if [ $done == 1 ]; then
+		echo "[mkindiso] finished cloning installer"
+	else
+		echo "[mkindiso] git clone failed :("
+		exit 1
+	fi
+}
+
+# check if root
+if [ "$(whoami)" == "root" ]; then
+	echo "[mkindiso] do not run this script as root!"
+	exit 1
+fi
+
+# check if mkarchiso is installed
+if ! command -v mkarchiso &> /dev/null
+then
+	echo "[mkindiso] mkarchiso is not installed"
+	echo "[mkindiso] install mkarchiso and try again"
+	exit 1
+fi
+
+# check if the user has notify-send, do as user
+if command -v notify-send &> /dev/null
+then
+	notify=1
+else
+	notify=0
+fi
 
 echo ""
 
 echo "[mkindiso] checking for existing install script..."
-sleep 0.5
 if [[ -d $INSTALLER_FINAL_DIR ]]
 then
-	echo "[mkindiso] removing previous install script..."
-	sleep 0.5
-	rm -rf $INSTALLER_FINAL_DIR
-	echo "[mkindiso] removed install script"
-fi
+	echo ""
+	echo "[mkindiso] use existing install script? [Y/n]: "
+	echo -n "[mkindiso] > "
+	read use_existing
+	if [[ ("$use_existing" != "") && ("$use_existing" != "Y") && ("$use_existing" != "y") ]]; then
+		echo "[mkindiso] removing existing install script..."
+		echo ""
+		echo "[mkindiso] can has sudo??"
+		sudo rm -rf $INSTALLER_FINAL_DIR
+		echo ""
+		echo "[mkindiso] removed install script"
 
-echo ""
-
-sleep 1
-
-echo "[mkindiso] git branch to clone indigo-installer (leave blank for main): "
-echo -n "[mkindiso] > "
-read branch
-
-echo ""
-echo "[mkindiso] cloning installer..."
-sleep 1
-echo ""
-
-if [ "$branch" == "" ]; then
-	git clone https://github.com/megabyte112/indigo-installer.git $INSTALLER_FINAL_DIR && done=1 || done=0
+		installinstaller
+	else
+		echo "[mkindiso] using existing install script"
+	fi
 else
-	git clone -b $branch --single-branch https://github.com/megabyte112/indigo-installer.git $INSTALLER_FINAL_DIR && done=1 || done=0
-fi
-
-echo ""
-
-if [ $done == 1 ]; then
-	echo "[mkindiso] finished cloning installer"
-else
-	echo "[mkindiso] git clone failed :("
-	exit 1
+	installinstaller
 fi
 
 echo ""
 
 echo "[mkindiso] checking for existing working directory..."
-sleep 0.5
 if [[ -d $WORK_DIR ]]
 then
 	echo "[mkindiso] removing existing working directory..."
-	sleep 0.5
+	echo ""
+	echo "[mkindiso] please can has sudo??"
+	sudo rm -rf $WORK_DIR
+	echo ""
+	echo "[mkindiso] removed working directory"
+fi
+
+
+echo ""
+echo "[mkindiso] okay, let's do this!!"
+echo "[mkindiso] prepare yourself - and enjoy the wait."
+
+# notify user as $USER
+if [ $notify == 1 ]; then
+	notify-send "mkindiso" "building iso..."
+fi
+
+echo ""
+echo "[mkindiso] building iso..."
+echo ""
+echo "[mkindiso] can has sudo again??"
+sudo mkarchiso -v -w $WORK_DIR . && complete=1 || complete=0
+
+if [ $complete == 1 ]; then
+	iso=$(ls out/indigo-*.iso | tail -n 1)
+	echo $(sha512sum $iso) > $iso.sha512sum
+	echo "[mkindiso] build complete :D"
+	if [ $notify == 1 ]; then
+		notify-send "mkindiso" "build complete :D"
+	fi
+else
+	echo ""
+	echo "[mkindiso] build failed :("
+	if [ $notify == 1 ]; then
+		notify-send "mkindiso" "build failed :("
+	fi
+	exit 1
+fi
+
+echo ""
+
+# ask to deleet working directory
+echo "[mkindiso] remove working directory? [Y/n]: "
+echo -n "[mkindiso] > "
+read delete
+
+if [[ ("$delete" != "") && ("$delete" != "Y") && ("$delete" != "y") ]]; then
+	echo "[mkindiso] not deleting working directory"
+else
+	echo "[mkindiso] cleaning up working directory (at $WORK_DIR)..."
+	echo ""
+	echo "[mkindiso] can has sudo one more time??"
 	sudo rm -rf $WORK_DIR
 	echo "[mkindiso] removed working directory"
 fi
 
 echo ""
-
-sleep 0.5
-
-echo -n "[mkindiso] ready to begin compilation? [Y/n]: "
-read ready
-
-if [[ ("$ready" != "") && ("$ready" != "Y") && ("$ready" != "y") ]]; then
-	echo "[mkindiso] aborting..."
-	exit 1
-fi
-
-echo ""
-echo "[mkindiso] okay, let's do this!!"
-sleep 0.5
-echo "[mkindiso] prepare yourself - and enjoy the wait."
-
-echo ""
-
-sleep 0.5
-
-echo "[mkindiso] building iso..."
-
-sleep 3
-
-sudo mkarchiso -v -w $WORK_DIR . && complete=1 || complete=0
-
-if [ $complete == 1 ]; then
-	echo ""
-	echo "[mkindiso] build complete :D"
-else
-	echo ""
-	echo "[mkindiso] build failed :("
-	exit 1
-fi
-
-echo ""
-echo "[mkindiso] cleaning up working directory (at $WORK_DIR)..."
-sudo rm -rf $WORK_DIR
 echo "[mkindiso] done!"
 echo "[mkindiso] check the 'out' folder for your iso file."
 exit 0
-
