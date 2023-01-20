@@ -110,16 +110,6 @@ then
 	echo "[mkindiso] removed working directory"
 fi
 
-echo ""
-
-echo -n "[mkindiso] ready to begin compilation? [Y/n]: "
-read ready
-
-if [[ ("$ready" != "") && ("$ready" != "Y") && ("$ready" != "y") ]]; then
-	echo "[mkindiso] aborting..."
-	exit 1
-fi
-
 
 echo ""
 echo "[mkindiso] okay, let's do this!!"
@@ -127,7 +117,7 @@ echo "[mkindiso] prepare yourself - and enjoy the wait."
 
 # notify user as $USER
 if [ $notify == 1 ]; then
-	notify-send "Building Indigo" "You'll be notified when it's complete."
+	notify-send "mkindiso" "building iso..."
 fi
 
 echo ""
@@ -141,13 +131,13 @@ if [ $complete == 1 ]; then
 	echo $(sha512sum $iso) > $iso.sha512sum
 	echo "[mkindiso] build complete :D"
 	if [ $notify == 1 ]; then
-		notify-send "Indigo is ready!" "Build complete :D"
+		notify-send "mkindiso" "build complete :D"
 	fi
 else
 	echo ""
 	echo "[mkindiso] build failed :("
 	if [ $notify == 1 ]; then
-		notify-send "Build failed" ":("
+		notify-send "mkindiso" "build failed :("
 	fi
 	exit 1
 fi
