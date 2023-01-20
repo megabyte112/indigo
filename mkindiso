@@ -64,6 +64,22 @@ then
 	exit 1
 fi
 
+# check if git is installed
+if ! command -v git &> /dev/null
+then
+	echo "[mkindiso] git is not installed"
+	echo "[mkindiso] install git and try again"
+	exit 1
+fi
+
+# check if sudo is installed
+if ! command -v sudo &> /dev/null
+then
+	echo "[mkindiso] sudo is not installed"
+	echo "[mkindiso] install sudo and try again"
+	exit 1
+fi
+
 # check if the user has notify-send, do as user
 if command -v notify-send &> /dev/null
 then
@@ -128,6 +144,7 @@ sudo mkarchiso -v -w $WORK_DIR . && complete=1 || complete=0
 
 if [ $complete == 1 ]; then
 	iso=$(ls out/indigo-*.iso | tail -n 1)
+	iso=${iso:4}
 	echo $(sha512sum $iso) > $iso.sha512sum
 	echo "[mkindiso] build complete :D"
 	if [ $notify == 1 ]; then
