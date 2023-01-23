@@ -82,9 +82,16 @@ fi
 # get keyboard layout, repeat until valid
 while true; do
 	echo ""
-	echo "Enter your keyboard layout (e.g. us, gb, etc)"
+	echo "Enter your keyboard layout (us, uk, etc), or type 'list' to see a list of layouts."
 	echo -n "> "
 	read keyboard
+
+	# list keyboard layouts and allow user to scroll through them
+	if [ "$keyboard" == "list" ]; then
+		localectl list-keymaps
+		clear
+		continue
+	fi
 
 	# test loadkeys
 	if loadkeys $keyboard 2> /dev/null; then
@@ -107,7 +114,8 @@ while true; do
 
 	# list locales and allow user to scroll through them
 	if [ "$locale" == "list" ]; then
-		less /etc/indigo-installer/locales
+		less /etc/indigo-installer/setup/locales
+		clear
 		continue
 	fi
 
@@ -123,9 +131,16 @@ done
 # get timezone
 while true; do
 	echo ""
-	echo "Enter your timezone (e.g. Europe/London, America/New_York, etc)"
+	echo "Enter your timezone (e.g. Europe/London, America/New_York, etc), or type 'list' to see a list of timezones."
 	echo -n "> "
 	read timezone
+
+	# list timezones and allow user to scroll through them
+	if [ "$timezone" == "list" ]; then
+		timedatectl list-timezones
+		clear
+		continue
+	fi
 
 	# check if timezone is in /usr/share/zoneinfo
 	if [ -f "/usr/share/zoneinfo/$timezone" ]; then
