@@ -101,9 +101,15 @@ loadkeys $keyboard
 # get locale
 while true; do
 	echo ""
-	echo "Enter your locale (e.g. en_GB.UTF-8, en_US.UTF-8, etc)"
+	echo "Enter your locale, or type 'list' to see a list of locales."
 	echo -n "> "
 	read locale
+
+	# list locales and allow user to scroll through them
+	if [ "$locale" == "list" ]; then
+		less /etc/indigo-installer/locales
+		continue
+	fi
 
 	# check if locale is in /etc/locale.gen
 	if grep -q "$locale" /etc/locale.gen; then
@@ -463,13 +469,13 @@ EEOF
 			read bootvolume
 			echo ""
 		else
-			echo "Enter the volume that you would like Indigo to use as the boot volume, if any (enter if none)."
+			echo "Enter the volume that you would like Indigo to use as the boot volume, if any (leave blank if none)."
 			echo -n "> "
 			read bootvolume
 			echo ""
 		fi
 		
-		echo "Enter the volume that you would like Indigo to use as the swap volume, if any (enter if none)."
+		echo "Enter the volume that you would like Indigo to use as the swap volume, if any (leave blank if none)."
 		echo -n "> "
 		read swapvolume
 		echo ""
@@ -516,6 +522,11 @@ EEOF
 		if [ "$firmware" == "UEFI" ]; then
 			mkdir -p /mnt/boot/efi
 			mount /dev/$bootvolume /mnt/boot/efi
+		fi
+
+		# swap
+		if [ -n "$swapvolume" ]; then
+			swapon /dev/$swapvolume
 		fi
 	else
 		inlog $D "invalid option"
