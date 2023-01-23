@@ -277,6 +277,12 @@ done
 inlog $D "trying to set system time..."
 timedatectl set-ntp true
 
+# if preest has a questions.sh file, run it
+if [ -f "/etc/indigo-installer/preset/$preset/questions.sh" ]; then
+	inlog $D "running preset questions.sh..."
+	bash /etc/indigo-installer/preset/$preset/questions.sh
+fi
+
 # check whether host is BIOS or UEFI
 inlog $D "determining whether host is BIOS or UEFI..."
 if [ -d /sys/firmware/efi ]; then
