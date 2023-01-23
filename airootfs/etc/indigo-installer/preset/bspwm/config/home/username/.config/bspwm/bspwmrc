@@ -23,12 +23,11 @@ bspc config presel_border_color		"#313244"
 
 bspc config pointer_modifier     	Mod4
 
-bash $HOME/firstboot.sh &
 xset r rate 200 50 &
 picom -fb &
-$HOME/.fehbg &
+#$HOME/.fehbg &
 xsetroot -cursor_name left_ptr &
 $HOME/.config/polybar/launch.sh --shapes &
 dunst &
 conky -c $HOME/.config/conky/mocha.conf &
-betterlockscreen -l dim
+bash $HOME/firstboot.sh

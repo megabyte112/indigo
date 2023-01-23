@@ -28,4 +28,10 @@ arch-chroot /mnt bash -c "chmod -R +x /home/$username/.config/*"
 # chmod the firstboot.sh file
 arch-chroot /mnt bash -c "chmod +x /home/$username/firstboot.sh"
 
+# check if this is running in a virtual machine, and if so, comment out the picom from bspwmrc
+if [[ $(systemd-detect-virt) != "none" ]]; then
+    sed -i "s/picom/#picom/" /mnt/home/$username/.config/bspwm/bspwmrc
+    echo "[bspwm preset setup] Running in a virtual machine, so picom has been disabled"
+fi
+
 exit 0

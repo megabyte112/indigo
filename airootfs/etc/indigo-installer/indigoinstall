@@ -13,6 +13,13 @@ else
 	D=false
 fi
 
+# virtual machine check
+virt=$(systemd-detect-virt)
+
+# force virtual machine status to "none" if the -f flag is passed
+if [ "$1" == "-f" ]; then
+	virt="none"
+fi
 
 # outputs logs if debug is true
 inlog(){
@@ -49,6 +56,29 @@ if ! yesno ; then
 	clear
 	inlog $D "aborting..."
 	exit 1
+fi
+
+# check for virtual machine, and if not, warn user again and ask them to confirm
+if [[ "$virt" == "none" ]]; then
+	inlog $D "not running in a virtual machine"
+	echo ""
+	echo "This does not appear to be a virtual machine."
+	echo "Indigo is not stable yet, and may destroy all data on this system."
+	echo "Are you sure you know what you're doing?"
+	echo "If so, type 'yes' to continue."
+	echo -n "> "
+	read opt
+
+	if [ "$opt" != "yes" ]; then
+		clear
+		inlog $D "aborting..."
+		exit 1
+	fi
+else
+	inlog $D "running in a virtual machine"
+	echo ""
+	echo "This appears to be a virtual machine."
+	echo "For your convenience, some safety features have been disabled."
 fi
 
 # get keyboard layout, repeat until valid
