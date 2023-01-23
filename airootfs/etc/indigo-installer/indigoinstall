@@ -53,7 +53,6 @@ echo "*THIS IS VERY LIKELY TO DESTROY ALL DATA ON THIS SYSTEM.*"
 echo "Are you sure you want to continue? (Y/n)"
 
 if ! yesno ; then
-	clear
 	inlog $D "aborting..."
 	exit 1
 fi
@@ -70,7 +69,6 @@ if [[ "$virt" == "none" ]]; then
 	read opt
 
 	if [ "$opt" != "yes" ]; then
-		clear
 		inlog $D "aborting..."
 		exit 1
 	fi
@@ -88,13 +86,12 @@ while true; do
 	echo -n "> "
 	read keyboard
 
-	# check if keyboard layout is in /usr/share/kbd/keymaps
-	if [ -f "/usr/share/kbd/keymaps/$keyboard.map.gz" ]; then
+	# test loadkeys
+	if loadkeys $keyboard 2> /dev/null; then
 		break
 	else
-		clear
 		inlog $D "invalid keyboard layout"
-		echo "Error: eyboard layout $keyboard does not exist."
+		echo "Error: keyboard layout $keyboard does not exist."
 	fi
 done
 
@@ -112,7 +109,6 @@ while true; do
 	if [ -f "/usr/share/zoneinfo/$timezone" ]; then
 		break
 	else
-		clear
 		inlog $D "invalid timezone"
 		echo "Error: timezone $timezone does not exist."
 	fi
@@ -127,7 +123,6 @@ while true; do
 
 	# check if hostname is valid and there are no spaces
 	if [ -z "$hostname" ] || [[ "$hostname" == *" "* ]]; then
-		clear
 		inlog $D "invalid hostname"
 		echo "Error: hostname cannot be blank or contain spaces."
 	else
@@ -146,7 +141,6 @@ while true; do
 	if grep -q "$locale" /etc/locale.gen; then
 		break
 	else
-		clear
 		inlog $D "invalid locale"
 		echo "Error: locale $locale does not exist."
 	fi
@@ -161,7 +155,6 @@ while true; do
 
 	# check if username is valid and there are no spaces
 	if [ -z "$username" ] || [[ "$username" == *" "* ]]; then
-		clear
 		inlog $D "invalid username"
 		echo "Error: username cannot be blank or contain spaces."
 	else
@@ -187,7 +180,6 @@ while true; do
 
 	# check if passwords match
 	if [ "$password" != "$password2" ]; then
-		clear
 		inlog $D "passwords do not match"
 		echo "Error: passwords do not match."
 	else
@@ -219,7 +211,6 @@ else
 
 		# check if passwords match
 		if [ "$rootpassword" != "$rootpassword2" ]; then
-			clear
 			inlog $D "passwords do not match"
 			echo "Error: passwords do not match."
 		else
@@ -255,7 +246,6 @@ while true; do
 	if [[ " ${presets[@]} " =~ " ${preset} " ]]; then
 		break
 	else
-		clear
 		inlog $D "invalid preset"
 		echo "Error: preset $preset does not exist."
 	fi
@@ -302,7 +292,6 @@ while true; do
 
 			# check if disk is valid
 			if ! [ -b "/dev/$disk" ]; then
-				clear
 				echo "Disk $disk does not exist."
 				inlog $D "invalid disk"
 			else
@@ -323,7 +312,6 @@ while true; do
 
 				# check if swapsize is valid
 				if ! [[ "$swapsize" =~ ^[0-9]+$ ]]; then
-					clear
 					echo "Error: $swapsize is not a valid number."
 					inlog $D "invalid swapsize"
 				else
@@ -339,7 +327,6 @@ while true; do
 		echo "Are you sure you want to install Indigo? (Y/n)"
 
 		if ! yesno ; then
-			clear
 			inlog $D "aborting..."
 			exit 1
 		fi
@@ -489,7 +476,6 @@ EEOF
 		echo "Are you sure you want to install Indigo? (Y/n)"
 
 		if ! yesno ; then
-			clear
 			inlog $D "aborting..."
 			exit 1
 		fi
@@ -532,7 +518,6 @@ EEOF
 			mount /dev/$bootvolume /mnt/boot/efi
 		fi
 	else
-		clear
 		inlog $D "invalid option"
 		echo "Error: Invalid option."
 	fi
