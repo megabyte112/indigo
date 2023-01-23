@@ -442,6 +442,7 @@ EEOF
 				swapon ${disktowrite}1
 			fi
 		fi
+		break
 	elif [ "$installoption" == "2" ]; then
 		# let the user partition the disk manually using cfdisk
 		echo ""
@@ -528,6 +529,8 @@ EEOF
 		if [ -n "$swapvolume" ]; then
 			swapon /dev/$swapvolume
 		fi
+
+		break
 	else
 		inlog $D "invalid option"
 		echo "Error: Invalid option."
