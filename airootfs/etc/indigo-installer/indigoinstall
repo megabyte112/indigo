@@ -415,12 +415,29 @@ elif [ "$installoption" == "2" ]; then
 		exit 1
 	fi
 
-	disktowrite="/dev/$rootvolume"
+	# format disks
+	inlog $D "formatting disks..."
+
+	# root
+	mkfs.btrfs /dev/$rootvolume
+
+	# boot
+	if [ -n "$bootvolume" ]; then
+		mkfs.fat -F 32 /dev/$bootvolume
+	fi
+
+	# swap
+	if [ -n "$swapvolume" ]; then
+		mkswap /dev/$swapvolume
+	fi
+
+	# disktowrite = parent disk
+	disktowrite=$(echo $rootvolume | sed 's/[0-9]//g')
 
 	# mount disks
 	inlog $D "mounting disks..."
 
-	mount $disktowrite /mnt
+	mount /dev/$rootvolume /mnt
 
 	# bios
 	if [ "$firmware" == "BIOS" ]; then
@@ -435,11 +452,6 @@ elif [ "$installoption" == "2" ]; then
 		mkdir -p /mnt/boot/efi
 		mount /dev/$bootvolume /mnt/boot/efi
 	fi
-
-	if [ -n "$swapvolume" ]; then
-		swapon /dev/$swapvolume
-	fi
-
 fi
 
 inlog $D "installing base packages..."
