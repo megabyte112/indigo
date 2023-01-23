@@ -1,15 +1,11 @@
-# Welcome to Indigo!
+# Indigo
 
 An Arch-based Linux distro, designed to look good right out of the box.
 
+## Development Repository
 
-Indigo includes:
-- The [Catppuccin](https://github.com/catppuccin/catppuccin) Mocha theme, including cursors and icons
-- A preconfigured and riced desktop environment or window manager, chosen by the user
-- Fully functional package management via `pacman`
-- AUR support with `yay` or other similar AUR helpers
-- Incredibly modular installer, for the tinkerers out there
-- Plus much more!
+This repository is private and should not be shared with anyone other than its contributors.
+
 
 ## Building
 
@@ -30,6 +26,3 @@ Use the `mkindiso` script to compile
 ./mkindiso
 ```
 
-## Footnotes
-
-Currently, this is only a test - Indigo is not yet in a usable state.
