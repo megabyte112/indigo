@@ -1,0 +1,632 @@
+#!/bin/bash
+
+# Indigo installer, by the Indigo team
+# This program is still in development.
+# ONLY RUN ON TEST HARDWARE, OR A VIRTUAL MACHINE.
+# DO NOT RUN ON PERSONAL COMPUTERS - DATA LOSS WILL LIKELY OCCUR.
+
+
+# enable debug mode if the -v flag is passed
+if [ "$1" == "-v" ]; then
+	D=true
+else
+	D=false
+fi
+
+
+# outputs logs if debug is true
+inlog(){
+    if [ $1 == true ]; then
+        echo "[indigo-installer] $2"
+    fi
+}
+
+# returns true if a given input is blank, 'y', or 'Y'.
+yesno(){
+	echo -n "> "
+	read opt
+	if [ -z "$opt" ]; then
+		return 0
+	elif [ "$opt" == "y" ]; then
+		return 0
+	elif [ "$opt" == "Y" ]; then
+		return 0
+	else
+		return 1
+	fi
+}
+
+clear
+
+inlog $D "preparing to install..."
+
+# make sure user actually wants to install
+echo "This will install Indigo on this system."
+echo "*THIS IS VERY LIKELY TO DESTROY ALL DATA ON THIS SYSTEM.*"
+echo "Are you sure you want to continue? (Y/n)"
+
+if ! yesno ; then
+	clear
+	inlog $D "aborting..."
+	exit 1
+fi
+
+# get timezone
+echo ""
+echo "Enter your timezone (e.g. America/New_York, Europe/London, etc)"
+echo -n "> "
+read timezone
+
+# check if timezone is in /usr/share/zoneinfo
+if ! [ -f "/usr/share/zoneinfo/$timezone" ]; then
+	clear
+	inlog $D "invalid timezone"
+	echo "Error: timezone $timezone does not exist."
+	echo "Please re-run the installer."
+	exit 1
+fi
+
+# get hostname
+echo ""
+echo "Enter a name for this system"
+echo -n "> "
+read hostname
+
+# check if hostname is valid and has no spaces
+if [ -z "$hostname" ] || [[ "$hostname" == *" "* ]]; then
+	clear
+	inlog $D "invalid hostname"
+	echo "Error: hostname cannot be blank or contain spaces."
+	echo "Please re-run the installer."
+	exit 1
+fi
+
+# get locale
+echo ""
+echo "Enter a locale for this system (e.g. en_US, en_GB, etc)"
+echo -n "> "
+read locale
+
+# check if locale is in /etc/locale.gen
+if ! grep -q "$locale" /etc/locale.gen; then
+	clear
+	inlog $D "invalid locale"
+	echo "Error: locale $locale does not exist."
+	echo "Please re-run the installer."
+	exit 1
+fi
+
+# get username
+echo ""
+echo "Create a username for your account"
+echo -n "> "
+read username
+
+# check if username is valid and there are no spaces
+if [ -z "$username" ] || [[ "$username" == *" "* ]]; then
+	clear
+	inlog $D "invalid username"
+	echo "Error: username cannot be blank or contain spaces."
+	echo "Please re-run the installer."
+	exit 1
+fi
+
+# get password
+echo ""
+echo "Create a password for $username."
+echo "(You won't be able to see what you type, this is normal.)"
+echo -n "> "
+read -s password
+echo ""
+
+# confirm password
+echo ""
+echo "Confirm your password."
+echo -n "> "
+read -s password2
+echo ""
+
+# check if passwords match
+if [ "$password" != "$password2" ]; then
+	clear
+	inlog $D "passwords do not match"
+	echo "Error: passwords do not match."
+	echo "Please re-run the installer."
+	password=""
+	password2=""
+	exit 1
+fi
+
+# ask whether to use the same password for root
+echo ""
+echo "Would you like to use the same password for root? (Y/n)"
+
+if yesno ; then
+	rootpassword=$password
+else
+	# root password
+	echo ""
+	echo "Create a password for root."
+	echo "(You won't be able to see what you type, this is normal.)"
+	echo -n "> "
+	read -s rootpassword
+	echo ""
+
+	# confirm password
+	echo ""
+	echo "Confirm your password."
+	echo -n "> "
+	read -s rootpassword2
+	echo ""
+
+	# check if passwords match
+	if [ "$rootpassword" != "$rootpassword2" ]; then
+		clear
+		inlog $D "passwords do not match"
+		echo "Error: passwords do not match."
+		echo "Please re-run the installer."
+		rootpassword=""
+		rootpassword2=""
+		exit 1
+	fi
+fi
+
+# make a list of directories present in /etc/indigo-installer/preset
+# this is used to determine which presets are available
+presets=()
+for folder in /etc/indigo-installer/preset/*; do
+	presets+=($(basename $folder))
+done
+
+# choose preset
+echo ""
+echo "Choose a preset to install."
+echo ""
+
+# list presets and their descriptions
+for i in "${!presets[@]}"; do
+	echo "- ${presets[$i]} - $(cat /etc/indigo-installer/preset/${presets[$i]}/description)"
+done
+
+echo ""
+echo "Enter the name of the preset you would like to install."
+echo -n "> "
+read preset
+
+# check if preset is valid
+if ! [ -d "/etc/indigo-installer/preset/$preset" ]; then
+	clear
+	echo "Error: preset $preset does not exist."
+	echo "Please re-run the installer."
+	inlog $D "invalid preset"
+	exit 1
+fi
+
+# set system time
+inlog $D "trying to set system time..."
+timedatectl set-ntp true
+
+# check whether host is BIOS or UEFI
+inlog $D "determining whether host is BIOS or UEFI..."
+if [ -d /sys/firmware/efi ]; then
+	firmware="UEFI"
+else
+	firmware="BIOS"
+fi
+inlog $D "host is $firmware"
+
+# ask for disk partition
+echo ""
+echo "How would you like to install Indigo?"
+echo ""
+echo "1 - Overwrite an entire disk"
+echo "2 - Manual Partitioning"
+echo ""
+echo "Choose a number."
+echo -n "> "
+read installoption
+
+if [ "$installoption" == "1" ]; then
+
+	# partition disk
+	echo ""
+	lsblk
+	echo ""
+	echo "Enter the disk from the above table that you would like to install Indigo to."
+	echo "Note that Indigo currently does not support installing to a pre-partitioned disk."
+	echo -n "> "
+	read disk
+
+	# check if disk is valid
+	if ! [ -b "/dev/$disk" ]; then
+		clear
+		echo "Disk $disk does not exist."
+		inlog $D "invalid disk"
+		exit 1
+	fi
+
+	# ask for swap
+	echo ""
+	echo "Would you like to create a swap partition? (Y/n)"
+
+	if yesno ; then
+		echo ""
+		echo "Enter the size of the swap partition (e.g. 2G, 512M, etc)"
+		echo -n "> "
+		read swapsize
+	else
+		swapsize=""
+	fi
+
+	echo ""
+	echo "All data on disk $disk will be destroyed."
+	echo "Are you sure you want to install Indigo? (Y/n)"
+
+	if ! yesno ; then
+		clear
+		inlog $D "aborting..."
+		exit 1
+	fi
+
+	disktowrite="/dev/$disk"
+
+	if [ "$firmware" == "UEFI" ]; then
+		if [ -z "$swapsize" ]; then
+			# UEFI, no swap
+			inlog $D "partitioning disk for UEFI..."
+			fdisk $disktowrite <<EEOF
+g
+n
+1
+
++256M
+t
+1
+n
+2
+
+
+w
+EEOF
+		inlog $D "formatting disk..."
+			mkfs.fat -F 32 ${disktowrite}1
+			mkfs.btrfs ${disktowrite}2
+			inlog $D "mounting disk..."
+			mount ${disktowrite}2 /mnt
+			mkdir -p /mnt/boot/efi
+			mount ${disktowrite}1 /mnt/boot/efi
+		else
+			# UEFI, with swap
+			inlog $D "partitioning disk for UEFI..."
+			fdisk $disktowrite <<EEOF
+g
+n
+
+
++256M
+t
+uefi
+n
+
+
++$swapsize
+t
+2
+swap
+n
+
+
+
+w
+EEOF
+			inlog $D "formatting disk..."
+			mkfs.fat -F 32 ${disktowrite}1
+			mkswap ${disktowrite}2
+			mkfs.btrfs ${disktowrite}3
+			inlog $D "mounting disk..."
+			mount ${disktowrite}3 /mnt
+			mkdir -p /mnt/boot/efi
+			mount ${disktowrite}1 /mnt/boot/efi
+			swapon ${disktowrite}2
+		fi
+	else
+		if [ -z "$swapsize" ]; then
+			# BIOS, no swap
+			inlog $D "partitioning disk for BIOS..."
+			fdisk $disktowrite <<EEOF
+o
+n
+p
+
+
+
+w
+EEOF
+			inlog $D "formatting disk..."
+			mkfs.btrfs ${disktowrite}1
+			inlog $D "mounting disk..."
+			mount ${disktowrite}1 /mnt
+		else
+			# BIOS, with swap
+			inlog $D "partitioning disk for BIOS..."
+			fdisk $disktowrite <<EEOF
+o
+n
+p
+
+
++$swapsize
+t
+swap
+n
+p
+
+
+
+w
+EEOF
+			inlog $D "formatting disk..."
+			mkswap ${disktowrite}1
+			mkfs.btrfs ${disktowrite}2
+			inlog $D "mounting disk..."
+			mount ${disktowrite}2 /mnt
+			swapon ${disktowrite}1
+		fi
+	fi
+elif [ "$installoption" == "2" ]; then
+	# let the user partition the disk manually using cfdisk
+	echo ""
+	echo "Please partition the disk using cfdisk."
+	if [ "$firmware" == "UEFI" ]; then
+		echo "You will need to create a root partition, an EFI partition, and optionally a swap partition."
+	else
+		echo "You will need to create a root partition, and optionally a boot and swap partition."
+	fi
+	echo "Press enter to continue."
+	read
+	cfdisk
+	clear
+	echo "Enter the volume that you would like Indigo to use as the root volume."
+	echo -n "> "
+	read rootvolume
+	echo ""
+
+	if [ "$firmware" == "UEFI" ]; then
+		echo "Enter the volume that you would like Indigo to use as the EFI volume."
+		echo -n "> "
+		read bootvolume
+		echo ""
+	else
+		echo "Enter the volume that you would like Indigo to use as the boot volume, if any (enter if none)."
+		echo -n "> "
+		read bootvolume
+		echo ""
+	fi
+	
+	echo "Enter the volume that you would like Indigo to use as the swap volume, if any (enter if none)."
+	echo -n "> "
+	read swapvolume
+	echo ""
+	echo "Are you sure you want to install Indigo? (Y/n)"
+
+	if ! yesno ; then
+		clear
+		inlog $D "aborting..."
+		exit 1
+	fi
+
+	disktowrite="/dev/$rootvolume"
+
+	# mount disks
+	inlog $D "mounting disks..."
+
+	mount $disktowrite /mnt
+
+	# bios
+	if [ "$firmware" == "BIOS" ]; then
+		if [ -n "$bootvolume" ]; then
+			mkdir -p /mnt/boot
+			mount /dev/$bootvolume /mnt/boot
+		fi
+	fi
+
+	# uefi
+	if [ "$firmware" == "UEFI" ]; then
+		mkdir -p /mnt/boot/efi
+		mount /dev/$bootvolume /mnt/boot/efi
+	fi
+
+	if [ -n "$swapvolume" ]; then
+		swapon /dev/$swapvolume
+	fi
+
+fi
+
+inlog $D "installing base packages..."
+
+# install base packages
+packages=(
+	"base"
+	"base-devel"
+	"bash"
+	"linux"
+	"linux-firmware"
+	"sudo"
+	"grub"
+	"networkmanager"
+	"vi"
+	"vim"
+	"git"
+	"openssh"
+	"open-vm-tools"
+	"virtualbox-guest-utils"
+	"btrfs-progs"
+	"neofetch"
+	"wget"
+	"noto-fonts"
+	"cantarell-fonts"
+	"mesa"
+	"nvidia-open-dkms"
+)
+
+# add efibootmgr if using UEFI
+if [ "$firmware" == "UEFI" ]; then
+	packages+=("efibootmgr")
+fi
+
+# append packages for preset from /etc/indigo-installer/preset/$preset/pkg-pacman file
+if [ -f "/etc/indigo-installer/preset/$preset/pkg-pacman" ]; then
+	packages+=($(cat /etc/indigo-installer/preset/$preset/pkg-pacman))
+fi
+
+# install packages
+pacstrap /mnt ${packages[*]}
+
+# install locally stored packages
+inlog $D "installing locally stored packages..."
+pacstrap -U /mnt /etc/indigo-installer/setup/packages/*.pkg.tar.zst
+
+# install local packages from /etc/indigo-installer/preset/$preset/pkg-custom
+if [ -d "/etc/indigo-installer/preset/$preset/pkg-custom" ]; then
+	inlog $D "installing locally stored packages for $preset..."
+	pacstrap -U /mnt /etc/indigo-installer/preset/$preset/pkg-custom/*.pkg.tar.zst	
+fi
+
+# copy OS files
+inlog $D "copying OS files..."
+cp -f /etc/os-release /mnt/usr/lib/os-release
+cp -f /etc/lsb-release /mnt/etc/lsb-release
+arch-chroot /mnt bash -c "ln -sf /usr/lib/os-release /etc/os-release"
+cp -f /etc/issue /mnt/etc/issue
+
+# generate fstab
+inlog $D "generating fstab..."
+genfstab -U /mnt >> /mnt/etc/fstab
+
+# set timezone
+inlog $D "setting timezone to $timezone..."
+arch-chroot /mnt bash -c "ln -sf /usr/share/zoneinfo/$timezone /etc/localtime"
+inlog $D "setting hardware clock..."
+arch-chroot /mnt bash -c "hwclock --systohc"
+
+# set locale
+inlog $D "setting locale to $locale..."
+arch-chroot /mnt bash -c "sed -i 's/#$locale.UTF-8 UTF-8/$locale.UTF-8 UTF-8/' /etc/locale.gen"
+
+# set hostname
+inlog $D "setting hostname to $hostname..."
+arch-chroot /mnt bash -c "echo $hostname > /etc/hostname"
+
+# setup root password
+if [ "$rootpassword" != "" ]; then
+	inlog $D "setting password for root..."
+	arch-chroot /mnt bash -c " echo root:$rootpassword | chpasswd"
+fi
+
+# make user
+inlog $D "making user $username..."
+arch-chroot /mnt bash -c "useradd -m -G wheel -s /bin/bash $username"
+
+# set user password
+inlog $D "setting password for $username..."
+arch-chroot /mnt bash -c "echo $username:$password | chpasswd"
+
+# reset password variables, for security
+rootpassword=""
+password=""
+
+# enable sudo
+inlog $D "enabling sudo..."
+arch-chroot /mnt bash -c "sed -i 's/# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/' /etc/sudoers"
+
+# copy preset files from /etc/indigo-installer/preset/$preset/config to root
+if [ -d "/etc/indigo-installer/preset/$preset/config" ]; then
+	inlog $D "copying preset files for $preset..."
+	# rename home folder from username to the actual username
+	if [ -d "/etc/indigo-installer/preset/$preset/config/home/username" ]; then
+		mv /etc/indigo-installer/preset/$preset/config/home/username /etc/indigo-installer/preset/$preset/config/home/$username
+	fi
+	cp -rf /etc/indigo-installer/preset/$preset/config/* /mnt
+fi
+
+# install bootloader
+if [ "$firmware" == "UEFI" ]; then
+	inlog $D "installing grub for UEFI..."
+	arch-chroot /mnt bash -c "grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=GRUB"
+else
+	inlog $D "installing grub for BIOS..."
+	arch-chroot /mnt bash -c "grub-install --target=i386-pc $disktowrite"
+fi
+
+# copy grub config
+inlog $D "copying grub config..."
+cp -f /etc/indigo-installer/setup/grub/grub /mnt/etc/default/grub
+
+# copy grub theme
+inlog $D "copying grub theme..."
+mkdir -p /mnt/usr/share/grub/themes/catppuccin-mocha-grub-theme
+cp -rf /etc/indigo-installer/setup/grub/catppuccin-mocha-grub-theme/* /mnt/usr/share/grub/themes/catppuccin-mocha-grub-theme/
+
+# configure bootloader
+inlog $D "configuring grub..."
+arch-chroot /mnt bash -c "grub-mkconfig -o /boot/grub/grub.cfg"
+
+# remove all "echo" lines from /boot/grub/grub.cfg
+inlog $D "removing all \"echo\" lines from grub config..."
+arch-chroot /mnt bash -c "sed -i '/echo/d' /boot/grub/grub.cfg"
+
+# enable services
+inlog $D "enabling services..."
+arch-chroot /mnt bash -c "systemctl enable NetworkManager"
+
+# enable services defined in /etc/indigo-installer/setup/$preset/services file
+if [ -f "/etc/indigo-installer/preset/$preset/services" ]; then
+	inlog $D "enabling services for $preset..."
+	sed -i "s/\$username/$username/g" /etc/indigo-installer/preset/$preset/services
+	for service in $(cat /etc/indigo-installer/preset/$preset/services); do
+		arch-chroot /mnt bash -c "systemctl enable $service"
+	done
+fi
+
+# add plymouth to mkinitcpio hooks
+inlog $D "adding plymouth to mkinitcpio hooks..."
+arch-chroot /mnt bash -c "sed -i 's/^HOOKS=(base udev/HOOKS=(base udev plymouth/' /etc/mkinitcpio.conf"
+
+# copy plymouth theme
+inlog $D "copying plymouth theme..."
+cp -rf /etc/indigo-installer/setup/plymouth/catppuccin-mocha /mnt/usr/share/plymouth/themes/catppuccin-mocha
+
+# set plymouth theme
+inlog $D "setting plymouth theme..."
+arch-chroot /mnt bash -c "plymouth-set-default-theme -R catppuccin-mocha"
+
+# run preset's setup script
+if [ -f "/etc/indigo-installer/preset/$preset/setup.sh" ]; then
+	inlog $D "running $preset setup script..."
+	chmod +x /etc/indigo-installer/preset/$preset/setup.sh
+	bash /etc/indigo-installer/preset/$preset/setup.sh $username
+fi
+
+# chown /home/$username
+inlog $D "chowning /home/$username..."
+arch-chroot /mnt bash -c "chown -R $username /home/$username"
+
+# unmount all disks
+inlog $D "unmounting disks..."
+umount -R /mnt
+
+inlog $D "done!"
+
+# ask the user if they want to reboot
+echo ""
+echo "Installation complete!"
+echo ""
+echo "Do you want to reboot? (Y/n)"
+
+if yesno ; then
+	reboot
+else
+	clear
+	echo "When you're ready, you can reboot by running \"reboot\"."
+	exit 0
+fi

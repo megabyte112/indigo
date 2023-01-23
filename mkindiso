@@ -1,54 +1,15 @@
 #!/bin/bash
 
 WORK_DIR=/tmp/indiso-build
-INSTALLER_FINAL_DIR=airootfs/etc/indigo-installer
 
 
 echo "[mkindiso] mkindiso, by the indigo team"
 
 echo ""
 
-echo "[mkindiso] indigo-installer directory:" $INSTALLER_FINAL_DIR
 echo "[mkindiso] mkindiso working directory:" $WORK_DIR
 
 echo ""
-
-installinstaller(){
-	echo ""
-	echo "[mkindiso] git repo to clone (format 'user/repo')"
-	echo "[mkindiso] (leave blank for megabyte112/indigo-installer):"
-	echo -n "[mkindiso] > "
-	read repo
-
-	echo ""
-	echo "[mkindiso] git branch to clone"
-	echo "[mkindiso] (leave blank for main): "
-	echo -n "[mkindiso] > "
-	read branch
-
-	echo ""
-	echo "[mkindiso] cloning installer..."
-	echo ""
-
-	if [[ "$repo" == "" ]]; then
-		repo="megabyte112/indigo-installer"
-	fi
-
-	if [[ "$branch" == "" ]]; then
-		branch="main"
-	fi
-
-	git clone https://github.com/$repo.git $INSTALLER_FINAL_DIR -b $branch && done=1 || done=0
-
-	echo ""
-
-	if [ $done == 1 ]; then
-		echo "[mkindiso] finished cloning installer"
-	else
-		echo "[mkindiso] git clone failed :("
-		exit 1
-	fi
-}
 
 # check if root
 if [ "$(whoami)" == "root" ]; then
@@ -56,19 +17,11 @@ if [ "$(whoami)" == "root" ]; then
 	exit 1
 fi
 
-# check if mkarchiso is installed
+# check if archiso is installed
 if ! command -v mkarchiso &> /dev/null
 then
-	echo "[mkindiso] mkarchiso is not installed"
-	echo "[mkindiso] install mkarchiso and try again"
-	exit 1
-fi
-
-# check if git is installed
-if ! command -v git &> /dev/null
-then
-	echo "[mkindiso] git is not installed"
-	echo "[mkindiso] install git and try again"
+	echo "[mkindiso] archiso is not installed"
+	echo "[mkindiso] install archiso and try again"
 	exit 1
 fi
 
@@ -85,47 +38,9 @@ if command -v notify-send &> /dev/null
 then
 	notify=1
 else
+	echo "[mkindiso] notify-send not found, disabling notifications"
 	notify=0
 fi
-
-echo ""
-
-echo "[mkindiso] checking for existing install script..."
-if [[ -d $INSTALLER_FINAL_DIR ]]
-then
-	echo ""
-	echo "[mkindiso] use existing install script? [Y/n]: "
-	echo -n "[mkindiso] > "
-	read use_existing
-	if [[ ("$use_existing" != "") && ("$use_existing" != "Y") && ("$use_existing" != "y") ]]; then
-		echo "[mkindiso] removing existing install script..."
-		echo ""
-		echo "[mkindiso] can has sudo??"
-		sudo rm -rf $INSTALLER_FINAL_DIR
-		echo ""
-		echo "[mkindiso] removed install script"
-
-		installinstaller
-	else
-		echo "[mkindiso] using existing install script"
-	fi
-else
-	installinstaller
-fi
-
-echo ""
-
-echo "[mkindiso] checking for existing working directory..."
-if [[ -d $WORK_DIR ]]
-then
-	echo "[mkindiso] removing existing working directory..."
-	echo ""
-	echo "[mkindiso] please can has sudo??"
-	sudo rm -rf $WORK_DIR
-	echo ""
-	echo "[mkindiso] removed working directory"
-fi
-
 
 echo ""
 echo "[mkindiso] okay, let's do this!!"
@@ -139,7 +54,7 @@ fi
 echo ""
 echo "[mkindiso] building iso..."
 echo ""
-echo "[mkindiso] can has sudo again??"
+echo "[mkindiso] can has sudo??"
 sudo mkarchiso -v -w $WORK_DIR . && complete=1 || complete=0
 
 if [ $complete == 1 ]; then
@@ -161,7 +76,7 @@ fi
 
 echo ""
 
-# ask to deleet working directory
+# ask to delete working directory
 echo "[mkindiso] remove working directory? [Y/n]: "
 echo -n "[mkindiso] > "
 read delete
