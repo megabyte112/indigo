@@ -98,6 +98,22 @@ done
 # set keyboard layout
 loadkeys $keyboard
 
+# get locale
+while true; do
+	echo ""
+	echo "Enter your locale (e.g. en_GB.UTF-8, en_US.UTF-8, etc)"
+	echo -n "> "
+	read locale
+
+	# check if locale is in /etc/locale.gen
+	if grep -q "$locale" /etc/locale.gen; then
+		break
+	else
+		inlog $D "invalid locale"
+		echo "Error: locale $locale does not exist."
+	fi
+done
+
 # get timezone
 while true; do
 	echo ""
@@ -127,22 +143,6 @@ while true; do
 		echo "Error: hostname cannot be blank or contain spaces."
 	else
 		break
-	fi
-done
-
-# get locale
-while true; do
-	echo ""
-	echo "Enter your locale (e.g. en_GB.UTF-8, en_US.UTF-8, etc)"
-	echo -n "> "
-	read locale
-
-	# check if locale is in /etc/locale.gen
-	if grep -q "$locale" /etc/locale.gen; then
-		break
-	else
-		inlog $D "invalid locale"
-		echo "Error: locale $locale does not exist."
 	fi
 done
 
