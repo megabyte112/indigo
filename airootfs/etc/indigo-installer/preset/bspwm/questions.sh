@@ -9,7 +9,7 @@ while true; do
 
 	# list keyboard layouts and allow user to scroll through them
 	if [ "$keyboard" == "list" ]; then
-		localectl list-x11-keymap-layouts
+		cat /etc/indigo-installer/preset/bspwm/xkbs | less
 		clear
 		continue
 	fi
@@ -18,7 +18,6 @@ while true; do
 	if loadkeys $keyboard 2> /dev/null; then
 		break
 	else
-		inlog $D "invalid x11 keyboard layout"
 		echo "Error: X11 keyboard layout $keyboard does not exist."
         if [ "$keyboard" == "uk" ]; then
             echo "Did you mean 'gb'?"
