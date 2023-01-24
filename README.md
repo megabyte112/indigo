@@ -26,3 +26,14 @@ Use the `mkindiso` script to compile
 ./mkindiso
 ```
 
+After compilation, verify the SHA512 checksum (replace Xs with the true filename)
+```
+cd out
+sha512sum -c indigo-XXXX-XX-XX-XX-XX-XX-x86_64.iso.sha512sum
+```
+
+Alternatively, verify all ISO files in the out folder
+```
+cd out
+sha512sum -c indigo-*-.iso.sha512sum
+```
