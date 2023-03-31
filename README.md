@@ -31,5 +31,6 @@ The ISO file, as well as its SHA-512 checksum, will appear in the `out` folder.
 
 To verify the checksum,
 ```
+cd out
 sha512sum -c indigo-XXXX-XX-XX-XX-XX-XX-x86_64.iso.sha512sum
 ```
