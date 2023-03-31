@@ -86,6 +86,13 @@ fi
 
 echo ""
 
+# start NetworkManager if it's not running
+if ! systemctl is-active --quiet NetworkManager; then
+	inlog $D "starting NetworkManager..."
+	echo "Starting Network Manager..."
+	systemctl start NetworkManager
+fi
+
 # network check
 checknetwork(){
 	echo "Checking network connection..."
@@ -149,7 +156,7 @@ while true; do
 				# try to connect to Wi-Fi network
 				echo ""
 				echo "Connecting to Wi-Fi network $wifinetwork..."
-				nmcli device wifi connect $wifinetwork password $wifipassword
+				nmcli device wifi connect "$wifinetwork" password "$wifipassword"
 				if [ $? -eq 0 ]; then
 					inlog $D "connected to Wi-Fi network $wifinetwork"
 					echo "Connection successful"
@@ -715,6 +722,10 @@ arch-chroot /mnt bash -c "hwclock --systohc"
 # set locale
 inlog $D "setting locale to $locale..."
 arch-chroot /mnt bash -c "sed -i 's/#$locale.UTF-8 UTF-8/$locale.UTF-8 UTF-8/' /etc/locale.gen"
+
+# set keyboard layout
+inlog $D "setting keyboard layout to $keyboardlayout..."
+arch-chroot /mnt bash -c "echo KEYMAP=$keyboardlayout > /etc/vconsole.conf"
 
 # set hostname
 inlog $D "setting hostname to $hostname..."
