@@ -14,15 +14,15 @@ while true; do
 		continue
 	fi
 
-	# test loadkeys
-	if loadkeys $keyboard 2> /dev/null; then
+	# check if keyboard layout is valid by checking if it's in the list
+	if grep -q "$keyboard" /etc/indigo-installer/preset/bspwm/xkbs; then
 		break
 	else
-		echo "Error: X11 keyboard layout $keyboard does not exist."
-        if [ "$keyboard" == "uk" ]; then
-            echo "Did you mean 'gb'?"
-        fi
+		echo ""
+		echo "Invalid keyboard layout. Please try again."
+		continue
 	fi
+
 done
 
 # replace XKEYMAPHERE in bspwmrc
