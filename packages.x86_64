@@ -2,7 +2,6 @@ amd-ucode
 arch-install-scripts
 archlinux-keyring
 base
-bash
 bind
 broadcom-wl
 btrfs-progs
@@ -24,6 +23,7 @@ ethtool
 exfatprogs
 f2fs-tools
 fatresize
+fish
 fsarchiver
 git
 gnu-netcat
@@ -60,6 +60,7 @@ mtools
 nbd
 ndisc6
 neofetch
+networkmanager
 nfs-utils
 nilfs-utils
 nmap

@@ -47,6 +47,11 @@ clear
 
 inlog $D "preparing to install..."
 
+echo "Indigo installer"
+echo ""
+echo "Tip: You can abort the installer at any time by pressing Ctrl+C."
+echo ""
+
 # make sure user actually wants to install
 echo "This will install Indigo on this system."
 echo "*THIS IS VERY LIKELY TO DESTROY ALL DATA ON THIS SYSTEM.*"
@@ -78,6 +83,86 @@ else
 	echo "This appears to be a virtual machine."
 	echo "For your convenience, some safety features have been disabled."
 fi
+
+# network check
+checknetwork(){
+	echo "Checking network connection..."
+	ping -c 1 archlinux.org > /dev/null 2>&1
+	if [ $? -eq 0 ]; then
+		return 0
+	else
+		return 1
+	fi
+}
+
+# check network connection: if unsuccessful, help user connect to Wi-Fi
+while true; do
+	if checknetwork; then
+		inlog $D "network connection established"
+		echo "Connection successful"
+		break
+	else
+		inlog $D "no network connection"
+		echo ""
+		echo "No network connection detected."
+		
+		# ask the user if they want to connect to Wi-Fi
+		echo "Would you like to run Wi-Fi setup? (Y/n)"
+		if yesno; then
+			# get Wi-Fi interface automatically
+			wifiinterface=$(ip link | grep -E "^[0-9]+: w" | cut -d: -f2 | tr -d ' ')
+
+			# get Wi-Fi network
+			while true; do
+				echo ""
+				echo "Enter the name of your Wi-Fi network."
+				echo -n "> "
+				read wifinetwork
+
+				# check if network exists
+				echo ""
+				echo "Attempting to connect to $wifinetwork..."
+				if iw dev $wifiinterface scan | grep -q "$wifinetwork"; then
+					break
+				else
+					inlog $D "invalid Wi-Fi network"
+					echo "Error: network $wifinetwork can't be found."
+				fi
+			done
+
+			# get Wi-Fi password
+			while true; do
+				echo ""
+				echo "Enter the password for your Wi-Fi network."
+				echo -n "> "
+				read -s wifipassword
+
+				# check if password is valid
+				if [ -z "$wifipassword" ]; then
+					inlog $D "invalid Wi-Fi password"
+					echo "Error: password cannot be blank."
+					continue
+				fi
+
+				# try to connect to Wi-Fi network
+				echo ""
+				echo "Connecting to Wi-Fi network $wifinetwork..."
+				nmcli device wifi connect $wifinetwork password $wifipassword
+				if [ $? -eq 0 ]; then
+					inlog $D "connected to Wi-Fi network $wifinetwork"
+					echo "Connection successful"
+					break
+				else
+					echo "Error: failed to connect to $wifinetwork."
+				fi
+			done
+		else
+			inlog $D "aborting..."
+			exit 1
+		fi
+	fi
+done
+
 
 # get keyboard layout, repeat until valid
 while true; do
@@ -564,7 +649,7 @@ inlog $D "installing base packages..."
 packages=(
 	"base"
 	"base-devel"
-	"bash"
+	"fish"
 	"linux"
 	"linux-firmware"
 	"sudo"
