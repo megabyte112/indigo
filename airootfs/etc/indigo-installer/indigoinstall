@@ -84,11 +84,10 @@ else
 	echo "For your convenience, some safety features have been disabled."
 fi
 
-echo ""
-
 # start NetworkManager if it's not running
 if ! systemctl is-active --quiet NetworkManager; then
 	inlog $D "starting NetworkManager..."
+	echo ""
 	echo "Starting Network Manager..."
 	systemctl start NetworkManager
 fi
@@ -106,6 +105,7 @@ checknetwork(){
 
 # check network connection: if unsuccessful, help user connect to Wi-Fi
 while true; do
+	echo ""
 	if checknetwork; then
 		inlog $D "network connection established"
 		echo "Connection successful"
