@@ -42,6 +42,12 @@ else
 	notify=0
 fi
 
+# check if out folder exists, if not, create it
+if [ ! -d "out" ]; then
+	echo "[mkindiso] creating out folder..."
+	mkdir out
+fi
+
 echo ""
 echo "[mkindiso] okay, let's do this!!"
 echo "[mkindiso] prepare yourself - and enjoy the wait."
