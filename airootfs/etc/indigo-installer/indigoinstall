@@ -157,9 +157,12 @@ while true; do
 				echo ""
 				echo "Connecting to Wi-Fi network $wifinetwork..."
 				nmcli device wifi connect "$wifinetwork" password "$wifipassword"
+				echo ""
 				if [ $? -eq 0 ]; then
 					inlog $D "connected to Wi-Fi network $wifinetwork"
-					echo "Connection successful"
+					echo "Connection successful!"
+					echo "Testing connection in 5 seconds..."
+					sleep 5
 					break
 				else
 					echo "Error: failed to connect to $wifinetwork."
