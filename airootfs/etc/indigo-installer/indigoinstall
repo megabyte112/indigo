@@ -84,6 +84,8 @@ else
 	echo "For your convenience, some safety features have been disabled."
 fi
 
+echo ""
+
 # network check
 checknetwork(){
 	echo "Checking network connection..."
