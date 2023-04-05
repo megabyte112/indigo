@@ -93,14 +93,40 @@ if ! systemctl is-active --quiet NetworkManager; then
 fi
 
 # network check
+# check archlinux.org for a network connection
+# failing this, check cloudflare.com
+# failing this, check github.com
+# if all of these fail, return 1
 checknetwork(){
 	echo "Checking network connection..."
-	ping -c 1 archlinux.org > /dev/null 2>&1
-	if [ $? -eq 0 ]; then
+	if ping -c 1 archlinux.org > /dev/null; then
+		return 0
+	elif ping -c 1 cloudflare.com > /dev/null; then
+		return 0
+	elif ping -c 1 github.com > /dev/null; then
 		return 0
 	else
 		return 1
 	fi
+}
+
+# scans for networks and shows them to the user
+# takes the Wi-Fi interface as an argument
+networkscan(){
+	echo ""
+	echo "Scanning for Wi-Fi networks..."
+	networks=$(iw dev $1 scan | grep -E "SSID: " | cut -d: -f2 | tr -d ' ' | head -n 8)
+	echo ""
+	echo "Select a Wi-Fi network to connect to:"
+	echo ""
+	i=1
+	for network in $networks; do
+		echo "$i) $network"
+		i=$((i+1))
+	done
+	echo ""
+	echo "9) Scan again"
+	echo "0) Enter SSID manually"
 }
 
 # check network connection: if unsuccessful, help user connect to Wi-Fi
@@ -108,7 +134,8 @@ while true; do
 	echo ""
 	if checknetwork; then
 		inlog $D "network connection established"
-		echo "Connection successful"
+		echo ""
+		echo "Connection successful!"
 		break
 	else
 		inlog $D "no network connection"
@@ -121,53 +148,108 @@ while true; do
 			# get Wi-Fi interface automatically
 			wifiinterface=$(ip link | grep -E "^[0-9]+: w" | cut -d: -f2 | tr -d ' ')
 
-			# get Wi-Fi network
+			# show a list of 8 Wi-Fi networks, and let the user choose one.
+			# they can also choose option 0 to enter a network manually.
+			# they can enter 9 to rescan for networks.
+			networkscan $wifiinterface
+
 			while true; do
 				echo ""
-				echo "Enter the name of your Wi-Fi network."
 				echo -n "> "
-				read wifinetwork
+				read opt
 
-				# check if network exists
-				echo ""
-				echo "Attempting to connect to $wifinetwork..."
-				if iw dev $wifiinterface scan | grep -q "$wifinetwork"; then
-					break
-				else
+				# check if the user entered a valid option
+				if [ -z "$opt" ]; then
 					inlog $D "invalid Wi-Fi network"
-					echo "Error: network $wifinetwork can't be found."
+					echo "Error: option cannot be blank."
+				elif [ "$opt" -gt 9 ] || [ "$opt" -lt 0 ]; then
+					inlog $D "invalid Wi-Fi network"
+					echo "Error: option must be between 0 and 9."
+				else
+					ssid=$(echo "$networks" | head -n $opt | tail -n 1)
+				fi
+
+				# if the user entered 9, rescan for networks
+				if [ "$opt" == 9 ]; then
+					networkscan $wifiinterface
+				fi
+
+				# if the user entered 0, ask them to enter the network manually
+				if [ "$opt" == 0 ]; then
+					echo ""
+					echo "Enter the name of your Wi-Fi network."
+					echo -n "> "
+					read ssid
+
+					# check if network exists
+					echo ""
+					if iw dev $wifiinterface scan | grep -q "$ssid"; then
+						break
+					else
+						inlog $D "invalid Wi-Fi network"
+						echo "Error: network \"$ssid\" can't be found."
+					fi
 				fi
 			done
 
-			# get Wi-Fi password
-			while true; do
-				echo ""
-				echo "Enter the password for your Wi-Fi network."
-				echo -n "> "
-				read -s wifipassword
+			echo ""
+			echo "Attempting to connect to \"$ssid\"..."
 
-				# check if password is valid
-				if [ -z "$wifipassword" ]; then
-					inlog $D "invalid Wi-Fi password"
-					echo "Error: password cannot be blank."
-					continue
-				fi
+			# check if password is needed: WPA, WPA2, WPA3, and WEP all require a password
+			if iw dev $wifiinterface scan | grep -q "$ssid" | grep -q "WPA"; then
+				wifipasswordneeded=true
+			elif iw dev $wifiinterface scan | grep -q "$ssid" | grep -q "WEP"; then
+				wifipasswordneeded=true
+			else
+				wifipasswordneeded=false
+			fi
 
+			# if password is needed, ask the user to enter it
+			if [ "$wifipasswordneeded" = true ]; then
+				while true; do
+					echo ""
+					echo "Enter the password for network \"$ssid\"."
+					echo -n "> "
+					read -s wifipassword
+
+					# check if password is valid
+					if [ -z "$wifipassword" ]; then
+						inlog $D "invalid Wi-Fi password"
+						echo "Error: password cannot be blank."
+						continue
+					fi
+
+					# try to connect to Wi-Fi network
+					echo ""
+					echo "Connecting to Wi-Fi network \"$ssid\"..."
+					nmcli device wifi connect "$ssid" password "$wifipassword"
+					echo ""
+					if [ $? -eq 0 ]; then
+						inlog $D "connected to Wi-Fi network \"$ssid\""
+						echo "Connection successful!"
+						echo "Testing connection in 5 seconds..."
+						sleep 5
+						break
+					else
+						echo "Error: failed to connect to \"$ssid\"."
+					fi
+				done
+			else
 				# try to connect to Wi-Fi network
 				echo ""
-				echo "Connecting to Wi-Fi network $wifinetwork..."
-				nmcli device wifi connect "$wifinetwork" password "$wifipassword"
+				echo "Connecting to Wi-Fi network \"$ssid\"..."
+				nmcli device wifi connect "$ssid"
 				echo ""
 				if [ $? -eq 0 ]; then
-					inlog $D "connected to Wi-Fi network $wifinetwork"
+					inlog $D "connected to Wi-Fi network \"$ssid\""
 					echo "Connection successful!"
 					echo "Testing connection in 5 seconds..."
 					sleep 5
 					break
 				else
-					echo "Error: failed to connect to $wifinetwork."
+					echo "Error: failed to connect to \"$ssid\"."
 				fi
-			done
+			fi
 		else
 			inlog $D "aborting..."
 			exit 1
