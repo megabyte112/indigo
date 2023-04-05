@@ -15,7 +15,8 @@
 Congratulations - you and your PC survived the Indigo installation process!
 
 You are using the bspwm window manager, which is very heavily focused on keyboard shortcuts.
-Here are some of the most important ones to get you started - you can use the up and down keys to scroll through this list.
+Here are some of the most important ones to get you started.
+You can use the scroll wheel or the up and down keys to scroll through this list.
 This file can be found in your home folder if you choose to come back later.
 
 Note that these are the default keybindings, and you can change them later in the sxhkdrc config file.
