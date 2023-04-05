@@ -23,10 +23,10 @@ sed -i "s/color_scheme_path=\/home\/username/color_scheme_path=\/home\/$username
 arch-chroot /mnt bash -c "fc-cache -f -v"
 
 # chmod the entire home config folder
-arch-chroot /mnt bash -c "chmod -R +x /home/$username/.config/*"
+arch-chroot /mnt bash -c "chmod -R 766 /home/$username/.config/*"
 
 # chmod the firstboot.sh file
-arch-chroot /mnt bash -c "chmod +x /home/$username/firstboot.sh"
+arch-chroot /mnt bash -c "chmod 777 /home/$username/firstboot.sh"
 
 # check if this is running in a virtual machine, and if so, comment out the picom from bspwmrc
 if [[ $(systemd-detect-virt) != "none" ]]; then
