@@ -26,4 +26,4 @@ while true; do
 done
 
 # replace XKEYMAPHERE in bspwmrc
-sed -i "s/XKEYMAPHERE/$keyboard/g" /etc/indigo-installer/preset/bspwm/config/home/$username/.config/bspwm/bspwmrc
+sed -i "s/XKEYMAPHERE/$keyboard/g" /etc/indigo-installer/preset/bspwm/config/home/username/.config/bspwm/bspwmrc
