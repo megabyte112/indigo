@@ -111,11 +111,12 @@ checknetwork(){
 }
 
 # scans for networks and shows them to the user
+# account for wifi networks with spaces in the name
 # takes the Wi-Fi interface as an argument
 networkscan(){
 	echo ""
 	echo "Scanning for Wi-Fi networks..."
-	networks=$(iw dev $1 scan | grep -E "SSID: " | cut -d: -f2 | tr -d ' ' | head -n 8)
+	networks=$(iw dev $1 scan | grep SSID | cut -d: -f2 | tr -d ' ')
 	echo ""
 	echo "Select a Wi-Fi network to connect to:"
 	echo ""
@@ -167,7 +168,7 @@ while true; do
 				elif ! [[ "$opt" =~ ^[0-9]+$ ]]; then
 					echo "Error: option must be a number."
 				else
-					ssid=$(echo "$networks" | head -n $opt | tail -n 1)
+					ssid=$(echo "$networks" | sed -n "$opt"p)
 					inlog $D "user selected network \"$ssid\""
 					break
 				fi
@@ -198,6 +199,11 @@ while true; do
 			echo ""
 			echo "Attempting to connect to \"$ssid\"..."
 
+			# prevent "device or resource busy" error
+			if nmcli device wifi | grep -q "$ssid"; then
+				nmcli device disconnect $wifiinterface
+			fi
+
 			# check if password is needed: WPA, WPA2, WPA3, and WEP all require a password
 			if iw dev $wifiinterface scan | grep -q "$ssid" | grep -q "WPA"; then
 				wifipasswordneeded=true
@@ -226,14 +232,15 @@ while true; do
 					echo ""
 					echo "Connecting to Wi-Fi network \"$ssid\"..."
 					nmcli device wifi connect "$ssid" password "$wifipassword"
-					echo ""
 					if [ $? -eq 0 ]; then
 						inlog $D "connected to Wi-Fi network \"$ssid\""
+						echo ""
 						echo "Connection successful!"
 						echo "Testing connection in 5 seconds..."
 						sleep 5
 						break
 					else
+						echo ""
 						echo "Error: failed to connect to \"$ssid\"."
 					fi
 				done
@@ -242,14 +249,14 @@ while true; do
 				echo ""
 				echo "Connecting to Wi-Fi network \"$ssid\"..."
 				nmcli device wifi connect "$ssid"
-				echo ""
 				if [ $? -eq 0 ]; then
 					inlog $D "connected to Wi-Fi network \"$ssid\""
+					echo ""
 					echo "Connection successful!"
 					echo "Testing connection in 5 seconds..."
 					sleep 5
-					break
 				else
+					echo ""
 					echo "Error: failed to connect to \"$ssid\"."
 				fi
 			fi
