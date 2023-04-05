@@ -80,8 +80,8 @@ if [[ "$virt" == "none" ]]; then
 else
 	inlog $D "running in a virtual machine"
 	echo ""
-	echo "This appears to be a virtual machine."
-	echo "For your convenience, some safety features have been disabled."
+	echo "Hey, is this a virtual machine?"
+	echo "It smells like $virt in here!"
 fi
 
 # start NetworkManager if it's not running
@@ -117,9 +117,9 @@ checknetwork(){
 networkscan(){
 	echo ""
 	echo "Scanning for Wi-Fi networks..."
-	networks=$(nmcli -m tabular -t -f SSID device wifi list ifname $1 | sed '/^$/d' | sort -u | head -n 8)
-
+	tmp=$(nmcli device wifi list ifname $1)
 	sleep 10
+	networks=$(nmcli -m tabular -t -f SSID device wifi list ifname $1 | sed '/^$/d' | sort -u | head -n 8)
 
 	echo ""
 	echo "Select a Wi-Fi network to connect to:"
@@ -137,6 +137,11 @@ networkscan(){
 	echo "0) Enter SSID manually"
 }
 
+
+# get Wi-Fi interface automatically
+wifiinterface=$(ip link | grep -E "^[0-9]+: w" | cut -d: -f2 | tr -d ' ')
+# this will be blank if no Wi-Fi interface is found, which is fine for ethernet-only systems
+
 # check network connection: if unsuccessful, help user connect to Wi-Fi
 while true; do
 	echo ""
@@ -153,8 +158,6 @@ while true; do
 		# ask the user if they want to connect to Wi-Fi
 		echo "Would you like to run Wi-Fi setup? (Y/n)"
 		if yesno; then
-			# get Wi-Fi interface automatically
-			wifiinterface=$(ip link | grep -E "^[0-9]+: w" | cut -d: -f2 | tr -d ' ')
 
 			# if no Wi-Fi interface is found, let the user know and exit
 			if [ -z "$wifiinterface" ]; then
@@ -316,6 +319,13 @@ while true; do
 		continue
 	fi
 
+	# check if keyboard layout is empty
+	if [ -z "$keyboard" ]; then
+		inlog $D "invalid keyboard layout"
+		echo "Error: keyboard layout cannot be empty."
+		continue
+	fi
+
 	# test loadkeys
 	if loadkeys $keyboard 2> /dev/null; then
 		break
@@ -339,6 +349,13 @@ while true; do
 	if [ "$locale" == "list" ]; then
 		less /etc/indigo-installer/setup/locales
 		clear
+		continue
+	fi
+
+	# check if locale is empty
+	if [ -z "$locale" ]; then
+		inlog $D "invalid locale"
+		echo "Error: locale cannot be empty."
 		continue
 	fi
 
@@ -565,6 +582,7 @@ while true; do
 					echo "Error: $swapsize is not a valid number."
 					inlog $D "invalid swapsize"
 				else
+					swapsize="${swapsize}G"
 					break
 				fi
 			done
@@ -586,6 +604,7 @@ while true; do
 		# wipe disk
 		inlog $D "wiping disk..."
 		wipefs -af $disktowrite
+		dd if=/dev/urandom of=$disktowrite bs=1M count=256 oflag=direct status=progress
 
 		if [ "$firmware" == "UEFI" ]; then
 			if [ -z "$swapsize" ]; then
@@ -921,6 +940,12 @@ arch-chroot /mnt bash -c "grub-mkconfig -o /boot/grub/grub.cfg"
 # remove all "echo" lines from /boot/grub/grub.cfg
 inlog $D "removing all \"echo\" lines from grub config..."
 arch-chroot /mnt bash -c "sed -i '/echo/d' /boot/grub/grub.cfg"
+
+# copy wi-fi network
+if [ -d "/etc/NetworkManager/system-connections" ]; then
+	inlog $D "copying wi-fi network..."
+	cp -f /etc/NetworkManager/system-connections/* /mnt/etc/NetworkManager/system-connections/
+fi
 
 # enable services
 inlog $D "enabling services..."

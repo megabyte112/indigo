@@ -8,7 +8,7 @@ feh --bg-scale /usr/share/backgrounds/waves.png
 sed -i "s/bash \$HOME\/firstboot.sh/betterlockscreen -l dim/" $HOME/.config/bspwm/bspwmrc
 
 # open keybind file
-alacritty -e sh -c "cat $HOME/keybinds | less"
+alacritty -e sh -c "cat $HOME/keybinds | less" &
 
 # lock screen
 betterlockscreen -l dim
