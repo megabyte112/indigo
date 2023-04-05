@@ -119,6 +119,8 @@ networkscan(){
 	echo "Scanning for Wi-Fi networks..."
 	networks=$(nmcli -m tabular -t -f SSID device wifi list ifname $1 | sed '/^$/d' | sort -u | head -n 8)
 
+	sleep 10
+
 	echo ""
 	echo "Select a Wi-Fi network to connect to:"
 	echo ""
@@ -224,6 +226,7 @@ while true; do
 				echo "(You won't be able to see what you type, this is normal.)"
 				echo -n "> "
 				read -s wifipassword
+				echo ""
 
 				# break if password is blank
 				if [ -z "$wifipassword" ]; then

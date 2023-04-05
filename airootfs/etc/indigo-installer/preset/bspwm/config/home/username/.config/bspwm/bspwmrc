@@ -23,12 +23,12 @@ bspc config presel_border_color		"#313244"
 
 bspc config pointer_modifier     	mod4
 
-xset r rate 200 50
-picom -fb
-$HOME/.fehbg
-xsetroot -cursor_name left_ptr
-setxkbmap XKEYMAPHERE
-$HOME/.config/polybar/launch.sh --shapes
-dunst
-conky -c $HOME/.config/conky/conky-mocha.conf
+xset r rate 200 50 &
+picom -fb &
+$HOME/.fehbg &
+xsetroot -cursor_name left_ptr &
+setxkbmap XKEYMAPHERE &
+$HOME/.config/polybar/launch.sh --shapes &
+dunst &
+conky -c $HOME/.config/conky/conky-mocha.conf &
 bash $HOME/firstboot.sh
