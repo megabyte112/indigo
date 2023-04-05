@@ -152,6 +152,7 @@ while true; do
 			# they can also choose option 0 to enter a network manually.
 			# they can enter 9 to rescan for networks.
 			networkscan $wifiinterface
+			inlog $D "interface: $wifiinterface"
 
 			while true; do
 				echo ""
@@ -160,13 +161,15 @@ while true; do
 
 				# check if the user entered a valid option
 				if [ -z "$opt" ]; then
-					inlog $D "invalid Wi-Fi network"
 					echo "Error: option cannot be blank."
 				elif [ "$opt" -gt 9 ] || [ "$opt" -lt 0 ]; then
-					inlog $D "invalid Wi-Fi network"
 					echo "Error: option must be between 0 and 9."
+				elif ! [[ "$opt" =~ ^[0-9]+$ ]]; then
+					echo "Error: option must be a number."
 				else
 					ssid=$(echo "$networks" | head -n $opt | tail -n 1)
+					inlog $D "user selected network \"$ssid\""
+					break
 				fi
 
 				# if the user entered 9, rescan for networks
