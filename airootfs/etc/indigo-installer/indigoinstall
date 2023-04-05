@@ -122,11 +122,14 @@ networkscan(){
 	echo ""
 	echo "Select a Wi-Fi network to connect to:"
 	echo ""
+
+	# list each LINE
 	i=1
-	for network in $networks; do
-		echo "$i) $network"
+	while read -r line; do
+		echo "$i) $line"
 		i=$((i+1))
-	done
+	done <<< "$networks"
+	
 	echo ""
 	echo "9) Scan again"
 	echo "0) Enter SSID manually"
