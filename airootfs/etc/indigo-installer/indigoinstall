@@ -221,6 +221,7 @@ while true; do
 			while true; do
 				echo ""
 				echo "Enter the password for network \"$ssid\", or leave blank if the network is open."
+				echo "(You won't be able to see what you type, this is normal.)"
 				echo -n "> "
 				read -s wifipassword
 
