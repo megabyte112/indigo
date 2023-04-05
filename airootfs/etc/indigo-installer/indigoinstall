@@ -580,6 +580,10 @@ while true; do
 
 		disktowrite="/dev/$disk"
 
+		# wipe disk
+		inlog $D "wiping disk..."
+		wipefs -af $disktowrite
+
 		if [ "$firmware" == "UEFI" ]; then
 			if [ -z "$swapsize" ]; then
 				# UEFI, no swap
@@ -590,14 +594,12 @@ n
 1
 
 +256M
-y
 t
 1
 n
 2
 
 
-y
 w
 EEOF
 			inlog $D "formatting disk..."
@@ -616,14 +618,12 @@ n
 
 
 +256M
-y
 t
 uefi
 n
 
 
 +$swapsize
-y
 t
 2
 swap
@@ -631,7 +631,6 @@ n
 
 
 
-y
 w
 EEOF
 				inlog $D "formatting disk..."
@@ -655,7 +654,6 @@ p
 
 
 
-y
 w
 EEOF
 				inlog $D "formatting disk..."
@@ -672,7 +670,6 @@ p
 
 
 +$swapsize
-y
 t
 swap
 n
@@ -680,7 +677,6 @@ p
 
 
 
-y
 w
 EEOF
 				inlog $D "formatting disk..."
