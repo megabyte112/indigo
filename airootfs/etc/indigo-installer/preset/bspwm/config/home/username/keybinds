@@ -1,0 +1,82 @@
+
+
+                                 /##                 /## /##                    
+                                |__/                | ##|__/                    
+                                 /## /#######   /####### /##  /######   /###### 
+                                | ##| ##__  ## /##__  ##| ## /##__  ## /##__  ##
+                                | ##| ##  \ ##| ##  | ##| ##| ##  \ ##| ##  \ ##
+                                | ##| ##  | ##| ##  | ##| ##| ##  | ##| ##  | ##
+                                | ##| ##  | ##|  #######| ##|  #######|  ######/
+                                |__/|__/  |__/ \_______/|__/ \____  ## \______/ 
+                                                             /##  \ ##          
+                                                            |  ######/          
+                                                             \______/           
+
+Congratulations - you and your PC survived the Indigo installation process!
+
+You are using the bspwm window manager, which is very heavily focused on keyboard shortcuts.
+Here are some of the most important ones to get you started - you can use the up and down keys to scroll through this list.
+This file can be found in your home folder if you choose to come back later.
+
+Note that these are the default keybindings, and you can change them later in the sxhkdrc config file.
+
+window management:
+    super + k: move focus up
+    super + j: move focus down
+    super + h: move focus left
+    super + l: move focus right
+    super + shift + k: move window up
+    super + shift + j: move window down
+    super + shift + h: move window left
+    super + shift + l: move window right
+    super + c: focus next window on screen
+    super + shift + c: focus previous window on screen
+    super + grave (`): focus last focused window
+    super + q: close window
+    super + shift + q: force kill window
+    super + left square bracket ([): switch to previous workspace
+    super + right square bracket (]): switch to next workspace
+    super + shift + left square bracket ([): move window to previous workspace
+    super + shift + right square bracket (]): move window to next workspace
+    super + i: rotate window positions
+    super + shift + i: rotate window positions (reverse)
+    super + g: swap current window with largest window
+    super + t: set window to tiled (default state)
+    super + f: set window to floating
+    super + shift + t: set window to pseudo-tiled
+    super + shift + f: set window to fullscreen
+    super + ctrl + k: preselect window up
+    super + ctrl + j: preselect window down
+    super + ctrl + h: preselect window left
+    super + ctrl + l: preselect window right
+    super + ctrl + (number): set preselect ratio
+    super + ctrl + space: cancel preselection for this window
+    super + ctrl + shift + space: cancel preselection for this workspace
+    super + alt + h: expand window from top
+    super + alt + j: expand window from bottom
+    super + alt + k: expand window from left
+    super + alt + l: expand window from right
+    super + alt + shift + h: contract window from top
+    super + alt + shift + j: contract window from bottom
+    super + alt + shift + k: contract window from left
+    super + alt + shift + l: contract window from right
+    super + (arrow keys): move window
+
+mouse:
+    super + left click drag: move window
+    super + right click drag: resize window
+    
+apps:
+    super + enter: terminal (alacritty)
+    super + e: file manager (thunar)
+    super + d: firefox
+
+utility:
+    super + space: app launcher (rofi)
+    super + x: lock screen
+    super + shift + s: take screenshot
+
+advanced:
+    super + escape: reload hotkey daemon (sxhkd)
+    super + alt + q: exit bspwm
+    super + alt + r: restart bspwm
