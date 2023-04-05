@@ -11,10 +11,6 @@ super + x
 super + shift + s
 	flameshot gui
 
-# record
-super + shift + r
-	simplescreenrecorder
-
 # programs
 super + d
 	firefox
