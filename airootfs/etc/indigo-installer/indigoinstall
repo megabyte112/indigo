@@ -600,12 +600,9 @@ while true; do
 
 		disktowrite="/dev/$disk"
 
-		# wipe disk, removing the partition table and partition signatures
+		# wipe disk, removing the partition table and signatures
 		inlog $D "wiping disk..."
 		wipefs -af $disktowrite
-		dd if=/dev/zero of=$disktowrite bs=1M count=100 oflag=direct status=progress
-
-
 
 
 		if [ "$firmware" == "UEFI" ]; then
