@@ -25,8 +25,24 @@ sed -i "s/REPLACETHIS/\/home\/$username\/Screenshots/" /mnt/home/$username/.conf
 # check if a a battery is present, and if so, enable the battery widget in polybar
 if [[ $(ls /sys/class/power_supply/ | grep -c "BAT") -gt 0 ]]; then
     sed -i "s/right3 alsa right2 network/right4 alsa right3 network right2 battery/" /mnt/home/$username/.config/polybar/shapes/config.ini
-    echo "[bspwm preset setup] Battery detected, so battery widget has been enabled"
+
+    # replace BATTERYHERE in polybar modules.ini with the battery name
+    battery=$(arch-chroot /mnt bash -c "ls /sys/class/power_supply/ | grep -E "BAT"")
+    sed -i "s/BATTERYHERE/$battery/" /mnt/home/$username/.config/polybar/shapes/modules.ini
+
+    # same for power adapter
+    power=$(arch-chroot /mnt bash -c "ls /sys/class/power_supply/ | grep -E "AC"")
+    sed -i "s/POWERHERE/$power/" /mnt/home/$username/.config/polybar/shapes/modules.ini
+
+    echo "[bspwm preset setup] Battery detected, so polybar battery widget has been enabled"
 fi
+
+# get network interface name
+network=$(arch-chroot /mnt bash -c "ip link | grep -E "^[0-9]+: e" | cut -d: -f2 | tr -d ' '")
+
+# add network interface name to polybar modules.ini
+inlog $D "replacing \"NETWORKADAPTERHERE\" in polybar modules.ini with network interface name..."
+sed -i "s/NETWORKADAPTERHERE/$network/g" /home/$username/.config/polybar/shapes/modules.ini
 
 # reload font cache
 arch-chroot /mnt bash -c "fc-cache -f -v"
@@ -45,8 +61,5 @@ fi
 
 # make fish the default shell
 arch-chroot /mnt bash -c "chsh -s /usr/bin/fish $username"
-
-# remove fish welcome message
-arch-chroot /mnt bash -c "echo \"set fish_greeting\" >> /home/$username/.config/fish/config.fish"
 
 exit 0

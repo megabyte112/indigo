@@ -553,7 +553,6 @@ while true; do
 		while true; do
 			echo ""
 			echo "Enter the disk from the above table that you would like to install Indigo to."
-			echo "Note that Indigo currently does not support installing to a pre-partitioned disk."
 			echo -n "> "
 			read disk
 
@@ -601,10 +600,13 @@ while true; do
 
 		disktowrite="/dev/$disk"
 
-		# wipe disk
+		# wipe disk, removing the partition table and partition signatures
 		inlog $D "wiping disk..."
 		wipefs -af $disktowrite
-		dd if=/dev/urandom of=$disktowrite bs=1M count=256 oflag=direct status=progress
+		dd if=/dev/zero of=$disktowrite bs=1M count=100 oflag=direct status=progress
+
+
+
 
 		if [ "$firmware" == "UEFI" ]; then
 			if [ -z "$swapsize" ]; then
@@ -948,6 +950,19 @@ cp -rf /etc/NetworkManager/* /mnt/etc/NetworkManager/
 # copy systemd network folder
 inlog $D "copying systemd network folder..."
 cp -rf /etc/systemd/network/* /mnt/etc/systemd/network/
+
+# get new wifi interface name
+if ! [ "$wifiinterface" == "" ]; then
+	inlog $D "getting new wifi interface..."
+	newnetworkinterface=$(arch-chroot /mnt bash -c "ip link | grep -E "^[0-9]+: w" | cut -d: -f2 | tr -d ' '")
+
+	# replace old network interface with new one
+	inlog $D "replacing old network interface with new one..."
+	find /mnt/etc/systemd/network -type f -exec sed -i "s/$wifiinterface/$newnetworkinterface/g" {} \;
+	find /mnt/etc/NetworkManager -type f -exec sed -i "s/$wifiinterface/$newnetworkinterface/g" {} \;
+	# system-connections
+	find /mnt/etc/NetworkManager/system-connections -type f -exec sed -i "s/$wifiinterface/$newnetworkinterface/g" {} \;
+fi
 
 # enable services
 inlog $D "enabling services..."
