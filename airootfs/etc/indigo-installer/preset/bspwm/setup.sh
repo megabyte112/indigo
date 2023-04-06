@@ -37,11 +37,16 @@ if [[ $(ls /sys/class/power_supply/ | grep -c "BAT") -gt 0 ]]; then
     echo "[bspwm preset setup] Battery detected, so polybar battery widget has been enabled"
 fi
 
-# get network interface name
-network=$(arch-chroot /mnt bash -c "ip link | grep -E "^[0-9]+: e" | cut -d: -f2 | tr -d ' '")
+# if a connection exists in /etc/NetworkManager/system-connections, assume wifi is used
+if [[ $(ls /etc/NetworkManager/system-connections/ | grep -c ".*") -gt 0 ]]; then
+    network=$(arch-chroot /mnt bash -c "ip link | grep -E "^[0-9]+: w" | cut -d: -f2 | tr -d ' '")
+else
+    network=$(arch-chroot /mnt bash -c "ip link | grep -E "^[0-9]+: e" | cut -d: -f2 | tr -d ' '")
+fi
+
 
 # add network interface name to polybar modules.ini
-inlog $D "replacing \"NETWORKADAPTERHERE\" in polybar modules.ini with network interface name..."
+inlog $D "replacing polybar network interface name..."
 sed -i "s/NETWORKADAPTERHERE/$network/g" /home/$username/.config/polybar/shapes/modules.ini
 
 # reload font cache

@@ -985,6 +985,19 @@ arch-chroot /mnt bash -c "grub-mkconfig -o /boot/grub/grub.cfg"
 inlog $D "removing all \"echo\" lines from grub config..."
 arch-chroot /mnt bash -c "sed -i '/echo/d' /boot/grub/grub.cfg"
 
+# enable services
+inlog $D "enabling services..."
+arch-chroot /mnt bash -c "systemctl enable NetworkManager"
+
+# enable services defined in /etc/indigo-installer/setup/$preset/services file
+if [ -f "/etc/indigo-installer/preset/$preset/services" ]; then
+	inlog $D "enabling services for $preset..."
+	sed -i "s/\$username/$username/g" /etc/indigo-installer/preset/$preset/services
+	for service in $(cat /etc/indigo-installer/preset/$preset/services); do
+		arch-chroot /mnt bash -c "systemctl enable $service"
+	done
+fi
+
 # copy NetworkManager folder
 inlog $D "copying NetworkManager folder..."
 cp -rf /etc/NetworkManager/* /mnt/etc/NetworkManager/
@@ -1003,19 +1016,6 @@ if ! [ "$wifiinterface" == "" ]; then
 	find /mnt/etc/systemd/network -type f -exec sed -i "s/$wifiinterface/$newnetworkinterface/g" {} \;
 	find /mnt/etc/NetworkManager -type f -exec sed -i "s/$wifiinterface/$newnetworkinterface/g" {} \;
 	find /mnt/etc/NetworkManager/system-connections -type f -exec sed -i "s/$wifiinterface/$newnetworkinterface/g" {} \;
-fi
-
-# enable services
-inlog $D "enabling services..."
-arch-chroot /mnt bash -c "systemctl enable NetworkManager"
-
-# enable services defined in /etc/indigo-installer/setup/$preset/services file
-if [ -f "/etc/indigo-installer/preset/$preset/services" ]; then
-	inlog $D "enabling services for $preset..."
-	sed -i "s/\$username/$username/g" /etc/indigo-installer/preset/$preset/services
-	for service in $(cat /etc/indigo-installer/preset/$preset/services); do
-		arch-chroot /mnt bash -c "systemctl enable $service"
-	done
 fi
 
 # add plymouth to mkinitcpio hooks
