@@ -1025,6 +1025,13 @@ if ! [ "$wifiinterface" == "" ]; then
 
 	# set new interface name, wlpXsY
 	newinterface="wlp$busnumber"s"$devicenumber"
+
+	# rename old interface to new interface in /etc/NetworkManager/system-connections
+	inlog $D "renaming $wifiinterface to $newinterface in system-connections..."
+	arch-chroot /mnt bash -c "sed -i 's/$wifiinterface/$newinterface/g' /etc/NetworkManager/system-connections/*"
+else
+	# get wired interface name
+	newinterface=$(ip link | grep -E "^[0-9]+: e" | cut -d: -f2 | tr -d ' ')
 fi
 
 # add plymouth to mkinitcpio hooks
@@ -1043,7 +1050,7 @@ arch-chroot /mnt bash -c "plymouth-set-default-theme -R catppuccin-mocha"
 if [ -f "/etc/indigo-installer/preset/$preset/setup.sh" ]; then
 	inlog $D "running $preset setup script..."
 	chmod +x /etc/indigo-installer/preset/$preset/setup.sh
-	bash /etc/indigo-installer/preset/$preset/setup.sh $username
+	bash /etc/indigo-installer/preset/$preset/setup.sh $username $newinterface
 fi
 
 # chown /home/$username
