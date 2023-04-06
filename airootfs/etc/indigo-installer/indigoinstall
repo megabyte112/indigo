@@ -612,7 +612,7 @@ while true; do
 			if [ -z "$swapsize" ]; then
 				# UEFI, no swap
 				inlog $D "partitioning disk for UEFI..."
-				fdisk $disktowrite <<EEOF
+				fdisk -W always $disktowrite <<EEOF
 g
 n
 1
@@ -636,7 +636,7 @@ EEOF
 			else
 				# UEFI, with swap
 				inlog $D "partitioning disk for UEFI..."
-				fdisk $disktowrite <<EEOF
+				fdisk -W always $disktowrite <<EEOF
 g
 n
 
@@ -671,7 +671,7 @@ EEOF
 			if [ -z "$swapsize" ]; then
 				# BIOS, no swap
 				inlog $D "partitioning disk for BIOS..."
-				fdisk $disktowrite <<EEOF
+				fdisk -W always $disktowrite <<EEOF
 o
 n
 p
@@ -687,7 +687,7 @@ EEOF
 			else
 				# BIOS, with swap
 				inlog $D "partitioning disk for BIOS..."
-				fdisk $disktowrite <<EEOF
+				fdisk -W always $disktowrite <<EEOF
 o
 n
 p
@@ -713,48 +713,93 @@ EEOF
 		fi
 		break
 	elif [ "$installoption" == "2" ]; then
-		# let the user partition the disk manually using cfdisk
-		echo ""
-		echo "Please partition the disk using cfdisk."
-		if [ "$firmware" == "UEFI" ]; then
-			echo "You will need to create a root partition, an EFI partition, and optionally a swap partition."
-		else
-			echo "You will need to create a root partition, and optionally a boot and swap partition."
-		fi
-		echo "Press enter to continue."
-		read
-		cfdisk
-		clear
-		echo ""
-		lsblk
-		echo ""
-		echo "Enter the volume that you would like Indigo to use as the root volume."
-		echo -n "> "
-		read rootvolume
-		echo ""
-
-		if [ "$firmware" == "UEFI" ]; then
-			echo "Enter the volume that you would like Indigo to use as the EFI volume."
-			echo -n "> "
-			read bootvolume
+		# ask the user if they want to use fdisk or cfdisk
+		while true; do
 			echo ""
-		else
-			echo "Enter the volume that you would like Indigo to use as the boot volume, if any (leave blank if none)."
-			echo -n "> "
-			read bootvolume
+			echo "Would you like to use fdisk or cfdisk to partition the disk? (1/2)"
 			echo ""
-		fi
-		
-		echo "Enter the volume that you would like Indigo to use as the swap volume, if any (leave blank if none)."
-		echo -n "> "
-		read swapvolume
-		echo ""
-		echo "Are you sure you want to install Indigo? (Y/n)"
+			echo "1) fdisk"
+			echo "2) cfdisk"
+			echo -n "> "
+			read partitiontool
 
-		if ! yesno ; then
-			inlog $D "aborting..."
-			exit 1
-		fi
+
+			if [ "$partitiontool" == "1" ]; then
+				echo ""
+				echo "Partition the disk using fdisk, write the changes, and exit fdisk."
+				if [ "$firmware" == "UEFI" ]; then
+					echo "You will need to create a root partition, an EFI partition, and optionally a swap partition."
+				else
+					echo "You will need to create a root partition, and optionally a boot and swap partition."
+				fi
+				echo "You will have a chance to confirm before installing Indigo."
+				echo "Press enter to continue."
+				read
+				clear
+				echo""
+				lsblk
+				echo ""
+				fdisk
+			elif [ "$partitiontool" == "2" ]; then
+				echo ""
+				echo "Partition the disk using cfdisk, write the changes, and exit cfdisk."
+				if [ "$firmware" == "UEFI" ]; then
+					echo "You will need to create a root partition, an EFI partition, and optionally a swap partition."
+				else
+					echo "You will need to create a root partition, and optionally a boot and swap partition."
+				fi
+				echo "You will have a chance to confirm before installing Indigo."
+				echo "Press enter to continue."
+				read
+				cfdisk
+			else
+				echo ""
+				echo "Invalid option."
+				continue
+			fi
+			clear
+			echo ""
+			lsblk
+			echo ""
+			echo "Enter the volume that you would like Indigo to use as the root volume."
+			echo -n "> "
+			read rootvolume
+			echo ""
+
+			if [ "$firmware" == "UEFI" ]; then
+				echo "Enter the volume that you would like Indigo to use as the EFI volume."
+				echo -n "> "
+				read bootvolume
+				echo ""
+			else
+				echo "Enter the volume that you would like Indigo to use as the boot volume, if any (leave blank if none)."
+				echo -n "> "
+				read bootvolume
+				echo ""
+			fi
+			
+			echo "Enter the volume that you would like Indigo to use as the swap volume, if any (leave blank if none)."
+			echo -n "> "
+			read swapvolume
+			echo ""
+			echo "Are you sure you want to install Indigo? (Y/n)"
+
+			if ! yesno ; then
+				echo "Redo the partitioning, or abort the installation?"
+				echo ""
+				echo "1) Redo partitioning"
+				echo "2) Abort installation"
+				echo -n "> "
+				read redochoice
+
+				if [ "$redochoice" == "2" ]; then
+					echo "Aborting installation..."
+					exit 1
+				else
+					continue
+				fi
+			fi
+		done
 
 		# format disks
 		inlog $D "formatting disks..."
