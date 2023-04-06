@@ -872,7 +872,6 @@ packages=(
 	"noto-fonts"
 	"cantarell-fonts"
 	"mesa"
-	"nvidia-open-dkms"
 )
 
 # add efibootmgr if using UEFI
