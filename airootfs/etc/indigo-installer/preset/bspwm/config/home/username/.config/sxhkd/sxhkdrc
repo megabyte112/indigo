@@ -136,3 +136,9 @@ XF86AudioMute
 	amixer set Master {mute, unmute}
 XF86Audio{Play,Stop,Prev,Next}
 	playerctl {play-pause,stop,previous,next}
+
+# brightness
+XF86MonBrightnessUp
+	brightnessctl set +10%
+XF86MonBrightnessDown
+	brightnessctl set 10%-

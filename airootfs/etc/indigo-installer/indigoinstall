@@ -941,11 +941,13 @@ arch-chroot /mnt bash -c "grub-mkconfig -o /boot/grub/grub.cfg"
 inlog $D "removing all \"echo\" lines from grub config..."
 arch-chroot /mnt bash -c "sed -i '/echo/d' /boot/grub/grub.cfg"
 
-# copy wi-fi network
-if [ -d "/etc/NetworkManager/system-connections" ]; then
-	inlog $D "copying wi-fi network..."
-	cp -f /etc/NetworkManager/system-connections/* /mnt/etc/NetworkManager/system-connections/
-fi
+# copy NetworkManager folder
+inlog $D "copying NetworkManager folder..."
+cp -rf /etc/NetworkManager/* /mnt/etc/NetworkManager/
+
+# copy systemd network folder
+inlog $D "copying systemd network folder..."
+cp -rf /etc/systemd/network/* /mnt/etc/systemd/network/
 
 # enable services
 inlog $D "enabling services..."

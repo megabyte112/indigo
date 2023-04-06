@@ -19,6 +19,15 @@ sed -i "s/color_scheme_path=\/home\/username/color_scheme_path=\/home\/$username
 # replace 'color_scheme_path=/home/username' with 'color_scheme_path=/home/'$username'' in qt6ct.conf
 sed -i "s/color_scheme_path=\/home\/username/color_scheme_path=\/home\/$username/" /mnt/home/$username/.config/qt6ct/qt6ct.conf
 
+# replace REPLACETHIS in flameshot.ini with /home/(username)/Screenshots
+sed -i "s/REPLACETHIS/\/home\/$username\/Screenshots/" /mnt/home/$username/.config/flameshot/flameshot.ini
+
+# check if a a battery is present, and if so, enable the battery widget in polybar
+if [[ $(ls /sys/class/power_supply/ | grep -c "BAT") -gt 0 ]]; then
+    sed -i "s/right3 alsa right2 network/right4 alsa right3 network right2 battery/" /mnt/home/$username/.config/polybar/shapes/config.ini
+    echo "[bspwm preset setup] Battery detected, so battery widget has been enabled"
+fi
+
 # reload font cache
 arch-chroot /mnt bash -c "fc-cache -f -v"
 
@@ -33,5 +42,11 @@ if [[ $(systemd-detect-virt) != "none" ]]; then
     sed -i "s/picom/#picom/" /mnt/home/$username/.config/bspwm/bspwmrc
     echo "[bspwm preset setup] Running in a virtual machine, so picom has been disabled"
 fi
+
+# make fish the default shell
+arch-chroot /mnt bash -c "chsh -s /usr/bin/fish $username"
+
+# remove fish welcome message
+arch-chroot /mnt bash -c "echo \"set fish_greeting\" >> /home/$username/.config/fish/config.fish"
 
 exit 0
