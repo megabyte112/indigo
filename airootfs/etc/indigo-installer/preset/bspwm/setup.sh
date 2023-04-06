@@ -39,8 +39,7 @@ if [[ $(ls /sys/class/power_supply/ | grep -c "BAT") -gt 0 ]]; then
 fi
 
 # add network interface name to polybar modules.ini
-inlog $D "replacing polybar network interface name..."
-sed -i "s/NETWORKADAPTERHERE/$interface/g" /home/$username/.config/polybar/shapes/modules.ini
+sed -i "s/NETWORKADAPTERHERE/$interface/g" /mnt/home/$username/.config/polybar/shapes/modules.ini
 
 # reload font cache
 arch-chroot /mnt bash -c "fc-cache -f -v"
