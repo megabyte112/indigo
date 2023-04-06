@@ -1005,16 +1005,26 @@ cp -rf /etc/NetworkManager/* /mnt/etc/NetworkManager/
 inlog $D "copying systemd network folder..."
 cp -rf /etc/systemd/network/* /mnt/etc/systemd/network/
 
-# get new wifi interface name
 if ! [ "$wifiinterface" == "" ]; then
-	inlog $D "getting new wifi interface..."
-	newnetworkinterface=$(arch-chroot /mnt bash -c "ip link | grep -E "^[0-9]+: w" | cut -d: -f2 | tr -d ' '")
+	# predict the new wi-fi interface name using lspci output
+	# name is 'wlpXsY' where X is the bus number and Y is the device number
+	# this is needed because the interface name will change after reboot
 
-	# replace old network interface with new one
-	inlog $D "replacing old network interface with new one..."
-	find /mnt/etc/systemd/network -type f -exec sed -i "s/$wifiinterface/$newnetworkinterface/g" {} \;
-	find /mnt/etc/NetworkManager -type f -exec sed -i "s/$wifiinterface/$newnetworkinterface/g" {} \;
-	find /mnt/etc/NetworkManager/system-connections -type f -exec sed -i "s/$wifiinterface/$newnetworkinterface/g" {} \;
+	# find network controller
+	lscpioutput=$(lspci | grep -A2 "Network controller")
+
+	# get bus number, this is the first 2 characters
+	busnumber=$(echo $lscpioutput | cut -c1-2)
+
+	# get device number, this is the 4th and 5th characters
+	devicenumber=$(echo $lscpioutput | cut -c4-5)
+
+	# convert both from hex to decimal
+	busnumber=$(printf "%d" 0x$busnumber)
+	devicenumber=$(printf "%d" 0x$devicenumber)
+
+	# set new interface name, wlpXsY
+	newinterface="wlp$busnumber"s"$devicenumber"
 fi
 
 # add plymouth to mkinitcpio hooks
