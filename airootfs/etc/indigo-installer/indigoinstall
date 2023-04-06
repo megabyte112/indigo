@@ -960,7 +960,6 @@ if ! [ "$wifiinterface" == "" ]; then
 	inlog $D "replacing old network interface with new one..."
 	find /mnt/etc/systemd/network -type f -exec sed -i "s/$wifiinterface/$newnetworkinterface/g" {} \;
 	find /mnt/etc/NetworkManager -type f -exec sed -i "s/$wifiinterface/$newnetworkinterface/g" {} \;
-	# system-connections
 	find /mnt/etc/NetworkManager/system-connections -type f -exec sed -i "s/$wifiinterface/$newnetworkinterface/g" {} \;
 fi
 
