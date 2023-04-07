@@ -9,7 +9,6 @@ bspwm
 sxhkd
 polybar
 rofi
-picom
 feh
 dunst
 firefox
@@ -22,7 +21,6 @@ qt6ct
 lxappearance
 flameshot
 ttf-fira-code
-simplescreenrecorder
 pulseaudio
 pulseaudio-alsa
 alsa-utils
@@ -31,3 +29,5 @@ imagemagick
 xfce4-settings
 accountsservice
 gvfs
+conky
+brightnessctl

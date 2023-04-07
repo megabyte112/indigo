@@ -13,6 +13,13 @@ else
 	D=false
 fi
 
+# virtual machine check
+virt=$(systemd-detect-virt)
+
+# force virtual machine status to "none" if the -f flag is passed
+if [ "$1" == "-f" ]; then
+	virt="none"
+fi
 
 # outputs logs if debug is true
 inlog(){
@@ -40,102 +47,406 @@ clear
 
 inlog $D "preparing to install..."
 
+echo "Indigo installer"
+echo ""
+echo "Tip: You can abort the installer at any time by pressing Ctrl+C."
+echo ""
+
 # make sure user actually wants to install
 echo "This will install Indigo on this system."
 echo "*THIS IS VERY LIKELY TO DESTROY ALL DATA ON THIS SYSTEM.*"
 echo "Are you sure you want to continue? (Y/n)"
 
 if ! yesno ; then
-	clear
 	inlog $D "aborting..."
 	exit 1
 fi
 
-# get timezone
-echo ""
-echo "Enter your timezone (e.g. America/New_York, Europe/London, etc)"
-echo -n "> "
-read timezone
+# check for virtual machine, and if not, warn user again and ask them to confirm
+if [[ "$virt" == "none" ]]; then
+	inlog $D "not running in a virtual machine"
+	echo ""
+	echo "This does not appear to be a virtual machine."
+	echo "Indigo is not stable yet, and may destroy all data on this system."
+	echo "Are you sure you know what you're doing?"
+	echo "If so, type 'yes' to continue."
+	echo -n "> "
+	read opt
 
-# check if timezone is in /usr/share/zoneinfo
-if ! [ -f "/usr/share/zoneinfo/$timezone" ]; then
-	clear
-	inlog $D "invalid timezone"
-	echo "Error: timezone $timezone does not exist."
-	echo "Please re-run the installer."
-	exit 1
+	if [ "$opt" != "yes" ]; then
+		inlog $D "aborting..."
+		exit 1
+	fi
+else
+	inlog $D "running in a virtual machine"
+	echo ""
+	echo "Hey, is this a virtual machine?"
+	echo "It smells like $virt in here!"
 fi
 
-# get hostname
-echo ""
-echo "Enter a name for this system"
-echo -n "> "
-read hostname
-
-# check if hostname is valid and has no spaces
-if [ -z "$hostname" ] || [[ "$hostname" == *" "* ]]; then
-	clear
-	inlog $D "invalid hostname"
-	echo "Error: hostname cannot be blank or contain spaces."
-	echo "Please re-run the installer."
-	exit 1
+# start NetworkManager if it's not running
+if ! systemctl is-active --quiet NetworkManager; then
+	inlog $D "starting NetworkManager..."
+	echo ""
+	echo "Starting Network Manager..."
+	systemctl start NetworkManager
 fi
+
+# network check
+# check archlinux.org for a network connection
+# failing this, check cloudflare.com
+# failing this, check github.com
+# if all of these fail, return 1
+checknetwork(){
+	echo "Checking network connection..."
+	if ping -c 1 archlinux.org > /dev/null; then
+		return 0
+	elif ping -c 1 cloudflare.com > /dev/null; then
+		return 0
+	elif ping -c 1 github.com > /dev/null; then
+		return 0
+	else
+		return 1
+	fi
+}
+
+# scans for networks and shows them to the user as a numbered list from 1 to 8
+# takes into account networks with spaces in their names
+# takes the Wi-Fi interface as an argument
+# doesn't show networks that have already been shown
+networkscan(){
+	echo ""
+	echo "Scanning for Wi-Fi networks..."
+	tmp=$(nmcli device wifi list ifname $1)
+	sleep 10
+	networks=$(nmcli -m tabular -t -f SSID device wifi list ifname $1 | sed '/^$/d' | sort -u | head -n 8)
+
+	echo ""
+	echo "Select a Wi-Fi network to connect to:"
+	echo ""
+
+	# list each LINE
+	i=1
+	while read -r line; do
+		echo "$i) $line"
+		i=$((i+1))
+	done <<< "$networks"
+
+	echo ""
+	echo "9) Scan again"
+	echo "0) Enter SSID manually"
+}
+
+
+# get Wi-Fi interface automatically
+wifiinterface=$(ip link | grep -E "^[0-9]+: w" | cut -d: -f2 | tr -d ' ')
+# this will be blank if no Wi-Fi interface is found, which is fine for ethernet-only systems
+
+# check network connection: if unsuccessful, help user connect to Wi-Fi
+while true; do
+	echo ""
+	if checknetwork; then
+		inlog $D "network connection established"
+		echo ""
+		echo "Connection successful!"
+		break
+	else
+		inlog $D "no network connection"
+		echo ""
+		echo "No network connection detected."
+		
+		# ask the user if they want to connect to Wi-Fi
+		echo "Would you like to run Wi-Fi setup? (Y/n)"
+		if yesno; then
+
+			# if no Wi-Fi interface is found, let the user know and exit
+			if [ -z "$wifiinterface" ]; then
+				inlog $D "no Wi-Fi interface found"
+				echo ""
+				echo "Error: no Wi-Fi interface found."
+				echo "If you're 100% sure you have a Wi-Fi interface, you'll need to manually connect to Wi-Fi."
+				continue
+			fi
+
+			# ensure interface is up
+			# if that doesn't work, let the user know they may be in airplane mode or wireless is disabled
+			if ! ip link set $wifiinterface up; then
+				inlog $D "could not bring up interface $wifiinterface"
+				echo ""
+				echo "Error: could not bring up interface $wifiinterface."
+				echo "This may be because you are in airplane mode or wireless is disabled."
+				echo "Retry? (Y/n)"
+				continue
+			fi
+
+			# show a list of up to 8 Wi-Fi networks, and let the user choose one.
+			# they can also choose option 0 to enter a network manually.
+			# they can enter 9 to rescan for networks.
+			networkscan $wifiinterface
+			inlog $D "interface: $wifiinterface"
+
+			while true; do
+				echo ""
+				echo -n "> "
+				read opt
+
+				# check if the user entered a valid option
+				if [ -z "$opt" ]; then
+					echo "Error: option cannot be blank."
+				elif [ "$opt" -gt 9 ] || [ "$opt" -lt 0 ]; then
+					echo "Error: option must be between 0 and 9."
+				elif ! [[ "$opt" =~ ^[0-9]+$ ]]; then
+					echo "Error: option must be a number."
+				elif [ "$opt" -gt 0 ] && [ "$opt" -le $(echo "$networks" | wc -l) ]; then
+					ssid=$(echo "$networks" | sed -n "$opt"p)
+					inlog $D "user selected network \"$ssid\""
+					break
+				elif [ "$opt" == 9 ]; then
+					networkscan $wifiinterface
+				elif [ "$opt" == 0 ]; then
+					echo ""
+					echo "Enter the name of your Wi-Fi network."
+					echo -n "> "
+					read ssid
+					break
+				else
+					echo "Error: invalid option."
+				fi
+			done
+
+			echo ""
+			echo "Attempting to connect to \"$ssid\"..."
+
+			# ask the user to enter password
+			# this can be left blank if the network is open
+			# passwords must be at least 8 characters long
+			# if the password is invalid, the user will be asked to enter it again
+
+			
+			while true; do
+				echo ""
+				echo "Enter the password for network \"$ssid\", or leave blank if the network is open."
+				echo "(You won't be able to see what you type, this is normal.)"
+				echo -n "> "
+				read -s wifipassword
+				echo ""
+
+				# break if password is blank
+				if [ -z "$wifipassword" ]; then
+					inlog $D "user entered blank password"
+
+					# try to connect to Wi-Fi network without a password
+					echo ""
+					echo "Connecting to Wi-Fi network \"$ssid\"..."
+					nmcli device wifi connect "$ssid" ifname $wifiinterface
+					if [ $? -eq 0 ]; then
+						inlog $D "connected to Wi-Fi network \"$ssid\""
+						echo ""
+						echo "Connection successful!"
+						echo "Testing connection in 5 seconds..."
+						sleep 5
+						break
+					else
+						echo ""
+						echo "Error: failed to connect to \"$ssid\"."
+						echo "Re-enter password? (Y/n)"
+						if yesno; then
+							continue
+						else
+							inlog $D "user abort"
+							break
+						fi
+					fi
+				fi
+
+				# check if password is at least 8 characters long
+				if [ ${#wifipassword} -lt 8 ]; then
+					echo ""
+					echo "Error: password must be at least 8 characters long."
+					echo "Re-enter password? (Y/n)"
+					if yesno; then
+						continue
+					else
+						inlog $D "user abort"
+						break
+					fi
+				else
+					inlog $D "user entered password"
+
+					# try to connect to Wi-Fi network
+					echo ""
+					echo "Connecting to Wi-Fi network \"$ssid\"..."
+					nmcli device wifi connect "$ssid" password "$wifipassword" ifname $wifiinterface
+					if [ $? -eq 0 ]; then
+						inlog $D "connected to Wi-Fi network \"$ssid\""
+						echo ""
+						echo "Connection successful!"
+						echo "Testing connection in 5 seconds..."
+						sleep 5
+						break
+					else
+						echo ""
+						echo "Error: failed to connect to \"$ssid\"."
+						echo "Would you like to try again? (Y/n)"
+						if yesno; then
+							continue
+						else
+							inlog $D "user abort"
+							break
+						fi
+					fi
+				fi
+			done
+		else
+			inlog $D "aborting..."
+			exit 1
+		fi
+	fi
+done
+
+
+# get keyboard layout, repeat until valid
+while true; do
+	echo ""
+	echo "Enter your keyboard layout (us, uk, etc), or type 'list' to see a list of layouts."
+	echo -n "> "
+	read keyboard
+
+	# list keyboard layouts and allow user to scroll through them
+	if [ "$keyboard" == "list" ]; then
+		localectl list-keymaps
+		clear
+		continue
+	fi
+
+	# check if keyboard layout is empty
+	if [ -z "$keyboard" ]; then
+		inlog $D "invalid keyboard layout"
+		echo "Error: keyboard layout cannot be empty."
+		continue
+	fi
+
+	# test loadkeys
+	if loadkeys $keyboard 2> /dev/null; then
+		break
+	else
+		inlog $D "invalid keyboard layout"
+		echo "Error: keyboard layout $keyboard does not exist."
+	fi
+done
+
+# set keyboard layout
+loadkeys $keyboard
 
 # get locale
-echo ""
-echo "Enter a locale for this system (e.g. en_US, en_GB, etc)"
-echo -n "> "
-read locale
+while true; do
+	echo ""
+	echo "Enter your locale, or type 'list' to see a list of locales."
+	echo -n "> "
+	read locale
 
-# check if locale is in /etc/locale.gen
-if ! grep -q "$locale" /etc/locale.gen; then
-	clear
-	inlog $D "invalid locale"
-	echo "Error: locale $locale does not exist."
-	echo "Please re-run the installer."
-	exit 1
-fi
+	# list locales and allow user to scroll through them
+	if [ "$locale" == "list" ]; then
+		less /etc/indigo-installer/setup/locales
+		clear
+		continue
+	fi
+
+	# check if locale is empty
+	if [ -z "$locale" ]; then
+		inlog $D "invalid locale"
+		echo "Error: locale cannot be empty."
+		continue
+	fi
+
+	# check if locale is in /etc/locale.gen
+	if grep -q "$locale" /etc/locale.gen; then
+		break
+	else
+		inlog $D "invalid locale"
+		echo "Error: locale $locale does not exist."
+	fi
+done
+
+# get timezone
+while true; do
+	echo ""
+	echo "Enter your timezone (e.g. Europe/London, America/New_York, etc), or type 'list' to see a list of timezones."
+	echo -n "> "
+	read timezone
+
+	# list timezones and allow user to scroll through them
+	if [ "$timezone" == "list" ]; then
+		timedatectl list-timezones
+		clear
+		continue
+	fi
+
+	# check if timezone is in /usr/share/zoneinfo
+	if [ -f "/usr/share/zoneinfo/$timezone" ]; then
+		break
+	else
+		inlog $D "invalid timezone"
+		echo "Error: timezone $timezone does not exist."
+	fi
+done
+
+# get hostname
+while true; do
+	echo ""
+	echo "Enter a hostname for this system"
+	echo -n "> "
+	read hostname
+
+	# check if hostname is valid and there are no spaces
+	if [ -z "$hostname" ] || [[ "$hostname" == *" "* ]]; then
+		inlog $D "invalid hostname"
+		echo "Error: hostname cannot be blank or contain spaces."
+	else
+		break
+	fi
+done
 
 # get username
-echo ""
-echo "Create a username for your account"
-echo -n "> "
-read username
+while true; do
+	echo ""
+	echo "Enter a username for this system"
+	echo -n "> "
+	read username
 
-# check if username is valid and there are no spaces
-if [ -z "$username" ] || [[ "$username" == *" "* ]]; then
-	clear
-	inlog $D "invalid username"
-	echo "Error: username cannot be blank or contain spaces."
-	echo "Please re-run the installer."
-	exit 1
-fi
+	# check if username is valid and there are no spaces
+	if [ -z "$username" ] || [[ "$username" == *" "* ]]; then
+		inlog $D "invalid username"
+		echo "Error: username cannot be blank or contain spaces."
+	else
+		break
+	fi
+done
 
-# get password
-echo ""
-echo "Create a password for $username."
-echo "(You won't be able to see what you type, this is normal.)"
-echo -n "> "
-read -s password
-echo ""
+# get password, confirm password, and check if they match
+while true; do
+	echo ""
+	echo "Create a password for $username."
+	echo "(You won't be able to see what you type, this is normal.)"
+	echo -n "> "
+	read -s password
+	echo ""
 
-# confirm password
-echo ""
-echo "Confirm your password."
-echo -n "> "
-read -s password2
-echo ""
+	# confirm password
+	echo ""
+	echo "Confirm your password."
+	echo -n "> "
+	read -s password2
+	echo ""
 
-# check if passwords match
-if [ "$password" != "$password2" ]; then
-	clear
-	inlog $D "passwords do not match"
-	echo "Error: passwords do not match."
-	echo "Please re-run the installer."
-	password=""
-	password2=""
-	exit 1
-fi
+	# check if passwords match
+	if [ "$password" != "$password2" ]; then
+		inlog $D "passwords do not match"
+		echo "Error: passwords do not match."
+	else
+		break
+	fi
+done
 
 # ask whether to use the same password for root
 echo ""
@@ -144,31 +455,29 @@ echo "Would you like to use the same password for root? (Y/n)"
 if yesno ; then
 	rootpassword=$password
 else
-	# root password
-	echo ""
-	echo "Create a password for root."
-	echo "(You won't be able to see what you type, this is normal.)"
-	echo -n "> "
-	read -s rootpassword
-	echo ""
+	while true; do
+		echo ""
+		echo "Create a password for root."
+		echo "(You won't be able to see what you type, this is normal.)"
+		echo -n "> "
+		read -s rootpassword
+		echo ""
 
-	# confirm password
-	echo ""
-	echo "Confirm your password."
-	echo -n "> "
-	read -s rootpassword2
-	echo ""
+		# confirm password
+		echo ""
+		echo "Confirm your password."
+		echo -n "> "
+		read -s rootpassword2
+		echo ""
 
-	# check if passwords match
-	if [ "$rootpassword" != "$rootpassword2" ]; then
-		clear
-		inlog $D "passwords do not match"
-		echo "Error: passwords do not match."
-		echo "Please re-run the installer."
-		rootpassword=""
-		rootpassword2=""
-		exit 1
-	fi
+		# check if passwords match
+		if [ "$rootpassword" != "$rootpassword2" ]; then
+			inlog $D "passwords do not match"
+			echo "Error: passwords do not match."
+		else
+			break
+		fi
+	done
 fi
 
 # make a list of directories present in /etc/indigo-installer/preset
@@ -180,7 +489,7 @@ done
 
 # choose preset
 echo ""
-echo "Choose a preset to install."
+echo "Choose a preset."
 echo ""
 
 # list presets and their descriptions
@@ -188,23 +497,31 @@ for i in "${!presets[@]}"; do
 	echo "- ${presets[$i]} - $(cat /etc/indigo-installer/preset/${presets[$i]}/description)"
 done
 
-echo ""
-echo "Enter the name of the preset you would like to install."
-echo -n "> "
-read preset
+while true; do
+	echo ""
+	echo "Type the name of the preset you want to install."
+	echo -n "> "
+	read preset
 
-# check if preset is valid
-if ! [ -d "/etc/indigo-installer/preset/$preset" ]; then
-	clear
-	echo "Error: preset $preset does not exist."
-	echo "Please re-run the installer."
-	inlog $D "invalid preset"
-	exit 1
-fi
+	# check if preset is valid
+	if [[ " ${presets[@]} " =~ " ${preset} " ]]; then
+		break
+	else
+		inlog $D "invalid preset"
+		echo "Error: preset $preset does not exist."
+	fi
+done
+
 
 # set system time
 inlog $D "trying to set system time..."
 timedatectl set-ntp true
+
+# if preest has a questions.sh file, run it
+if [ -f "/etc/indigo-installer/preset/$preset/questions.sh" ]; then
+	inlog $D "running preset questions.sh..."
+	bash /etc/indigo-installer/preset/$preset/questions.sh
+fi
 
 # check whether host is BIOS or UEFI
 inlog $D "determining whether host is BIOS or UEFI..."
@@ -221,60 +538,78 @@ echo "How would you like to install Indigo?"
 echo ""
 echo "1 - Overwrite an entire disk"
 echo "2 - Manual Partitioning"
-echo ""
-echo "Choose a number."
-echo -n "> "
-read installoption
 
-if [ "$installoption" == "1" ]; then
-
-	# partition disk
+while true; do
 	echo ""
-	lsblk
-	echo ""
-	echo "Enter the disk from the above table that you would like to install Indigo to."
-	echo "Note that Indigo currently does not support installing to a pre-partitioned disk."
+	echo "Choose a number."
 	echo -n "> "
-	read disk
+	read installoption
 
-	# check if disk is valid
-	if ! [ -b "/dev/$disk" ]; then
-		clear
-		echo "Disk $disk does not exist."
-		inlog $D "invalid disk"
-		exit 1
-	fi
+	if [ "$installoption" == "1" ]; then
 
-	# ask for swap
-	echo ""
-	echo "Would you like to create a swap partition? (Y/n)"
-
-	if yesno ; then
+		# partition disk
 		echo ""
-		echo "Enter the size of the swap partition (e.g. 2G, 512M, etc)"
-		echo -n "> "
-		read swapsize
-	else
-		swapsize=""
-	fi
+		lsblk
+		while true; do
+			echo ""
+			echo "Enter the disk from the above table that you would like to install Indigo to."
+			echo -n "> "
+			read disk
 
-	echo ""
-	echo "All data on disk $disk will be destroyed."
-	echo "Are you sure you want to install Indigo? (Y/n)"
+			# check if disk is valid
+			if ! [ -b "/dev/$disk" ]; then
+				echo "Disk $disk does not exist."
+				inlog $D "invalid disk"
+			else
+				break
+			fi
+		done
 
-	if ! yesno ; then
-		clear
-		inlog $D "aborting..."
-		exit 1
-	fi
+		# ask for swap
+		echo ""
+		echo "Would you like to create a swap partition? (Y/n)"
 
-	disktowrite="/dev/$disk"
+		if yesno ; then
+			while true; do
+				echo ""
+				echo "Enter the size of the swap partition in GB."
+				echo -n "> "
+				read swapsize
 
-	if [ "$firmware" == "UEFI" ]; then
-		if [ -z "$swapsize" ]; then
-			# UEFI, no swap
-			inlog $D "partitioning disk for UEFI..."
-			fdisk $disktowrite <<EEOF
+				# check if swapsize is valid
+				if ! [[ "$swapsize" =~ ^[0-9]+$ ]]; then
+					echo "Error: $swapsize is not a valid number."
+					inlog $D "invalid swapsize"
+				else
+					swapsize="${swapsize}G"
+					break
+				fi
+			done
+		else
+			swapsize=""
+		fi
+
+		echo ""
+		echo "All data on disk $disk will be destroyed."
+		echo "Are you sure you want to install Indigo? (Y/n)"
+
+		if ! yesno ; then
+			inlog $D "aborting..."
+			exit 1
+		fi
+
+		disktowrite="/dev/$disk"
+
+		# wipe disk, removing the partition table and signatures
+		inlog $D "wiping disk..."
+		wipefs -af $disktowrite
+
+
+		if [ "$firmware" == "UEFI" ]; then
+			if [ -z "$swapsize" ]; then
+				# UEFI, no swap
+				inlog $D "partitioning disk for UEFI..."
+				fdisk -W always $disktowrite <<EEOF
 g
 n
 1
@@ -288,17 +623,17 @@ n
 
 w
 EEOF
-		inlog $D "formatting disk..."
-			mkfs.fat -F 32 ${disktowrite}1
-			mkfs.btrfs ${disktowrite}2
-			inlog $D "mounting disk..."
-			mount ${disktowrite}2 /mnt
-			mkdir -p /mnt/boot/efi
-			mount ${disktowrite}1 /mnt/boot/efi
-		else
-			# UEFI, with swap
-			inlog $D "partitioning disk for UEFI..."
-			fdisk $disktowrite <<EEOF
+			inlog $D "formatting disk..."
+				mkfs.fat -F 32 ${disktowrite}1
+				mkfs.btrfs ${disktowrite}2
+				inlog $D "mounting disk..."
+				mount ${disktowrite}2 /mnt
+				mkdir -p /mnt/boot/efi
+				mount ${disktowrite}1 /mnt/boot/efi
+			else
+				# UEFI, with swap
+				inlog $D "partitioning disk for UEFI..."
+				fdisk -W always $disktowrite <<EEOF
 g
 n
 
@@ -319,21 +654,21 @@ n
 
 w
 EEOF
-			inlog $D "formatting disk..."
-			mkfs.fat -F 32 ${disktowrite}1
-			mkswap ${disktowrite}2
-			mkfs.btrfs ${disktowrite}3
-			inlog $D "mounting disk..."
-			mount ${disktowrite}3 /mnt
-			mkdir -p /mnt/boot/efi
-			mount ${disktowrite}1 /mnt/boot/efi
-			swapon ${disktowrite}2
-		fi
-	else
-		if [ -z "$swapsize" ]; then
-			# BIOS, no swap
-			inlog $D "partitioning disk for BIOS..."
-			fdisk $disktowrite <<EEOF
+				inlog $D "formatting disk..."
+				mkfs.fat -F 32 ${disktowrite}1
+				mkswap ${disktowrite}2
+				mkfs.btrfs ${disktowrite}3
+				inlog $D "mounting disk..."
+				mount ${disktowrite}3 /mnt
+				mkdir -p /mnt/boot/efi
+				mount ${disktowrite}1 /mnt/boot/efi
+				swapon ${disktowrite}2
+			fi
+		else
+			if [ -z "$swapsize" ]; then
+				# BIOS, no swap
+				inlog $D "partitioning disk for BIOS..."
+				fdisk -W always $disktowrite <<EEOF
 o
 n
 p
@@ -342,14 +677,14 @@ p
 
 w
 EEOF
-			inlog $D "formatting disk..."
-			mkfs.btrfs ${disktowrite}1
-			inlog $D "mounting disk..."
-			mount ${disktowrite}1 /mnt
-		else
-			# BIOS, with swap
-			inlog $D "partitioning disk for BIOS..."
-			fdisk $disktowrite <<EEOF
+				inlog $D "formatting disk..."
+				mkfs.btrfs ${disktowrite}1
+				inlog $D "mounting disk..."
+				mount ${disktowrite}1 /mnt
+			else
+				# BIOS, with swap
+				inlog $D "partitioning disk for BIOS..."
+				fdisk -W always $disktowrite <<EEOF
 o
 n
 p
@@ -365,82 +700,153 @@ p
 
 w
 EEOF
-			inlog $D "formatting disk..."
-			mkswap ${disktowrite}1
-			mkfs.btrfs ${disktowrite}2
-			inlog $D "mounting disk..."
-			mount ${disktowrite}2 /mnt
-			swapon ${disktowrite}1
+				inlog $D "formatting disk..."
+				mkswap ${disktowrite}1
+				mkfs.btrfs ${disktowrite}2
+				inlog $D "mounting disk..."
+				mount ${disktowrite}2 /mnt
+				swapon ${disktowrite}1
+			fi
 		fi
-	fi
-elif [ "$installoption" == "2" ]; then
-	# let the user partition the disk manually using cfdisk
-	echo ""
-	echo "Please partition the disk using cfdisk."
-	if [ "$firmware" == "UEFI" ]; then
-		echo "You will need to create a root partition, an EFI partition, and optionally a swap partition."
-	else
-		echo "You will need to create a root partition, and optionally a boot and swap partition."
-	fi
-	echo "Press enter to continue."
-	read
-	cfdisk
-	clear
-	echo "Enter the volume that you would like Indigo to use as the root volume."
-	echo -n "> "
-	read rootvolume
-	echo ""
+		break
+	elif [ "$installoption" == "2" ]; then
+		# ask the user if they want to use fdisk or cfdisk
+		while true; do
+			echo ""
+			echo "Would you like to use fdisk or cfdisk to partition the disk? (1/2)"
+			echo ""
+			echo "1) fdisk"
+			echo "2) cfdisk"
+			echo -n "> "
+			read partitiontool
 
-	if [ "$firmware" == "UEFI" ]; then
-		echo "Enter the volume that you would like Indigo to use as the EFI volume."
-		echo -n "> "
-		read bootvolume
-		echo ""
-	else
-		echo "Enter the volume that you would like Indigo to use as the boot volume, if any (enter if none)."
-		echo -n "> "
-		read bootvolume
-		echo ""
-	fi
-	
-	echo "Enter the volume that you would like Indigo to use as the swap volume, if any (enter if none)."
-	echo -n "> "
-	read swapvolume
-	echo ""
-	echo "Are you sure you want to install Indigo? (Y/n)"
 
-	if ! yesno ; then
-		clear
-		inlog $D "aborting..."
-		exit 1
-	fi
+			if [ "$partitiontool" == "1" ]; then
+				echo ""
+				echo "Partition the disk using fdisk, write the changes, and exit fdisk."
+				if [ "$firmware" == "UEFI" ]; then
+					echo "You will need to create a root partition, an EFI partition, and optionally a swap partition."
+				else
+					echo "You will need to create a root partition, and optionally a boot and swap partition."
+				fi
+				echo "You will have a chance to confirm before installing Indigo."
+				echo "Press enter to continue."
+				read
+				clear
+				echo""
+				lsblk
+				echo ""
+				fdisk
+			elif [ "$partitiontool" == "2" ]; then
+				echo ""
+				echo "Partition the disk using cfdisk, write the changes, and exit cfdisk."
+				if [ "$firmware" == "UEFI" ]; then
+					echo "You will need to create a root partition, an EFI partition, and optionally a swap partition."
+				else
+					echo "You will need to create a root partition, and optionally a boot and swap partition."
+				fi
+				echo "You will have a chance to confirm before installing Indigo."
+				echo "Press enter to continue."
+				read
+				cfdisk
+			else
+				echo ""
+				echo "Invalid option."
+				continue
+			fi
+			clear
+			echo ""
+			lsblk
+			echo ""
+			echo "Enter the volume that you would like Indigo to use as the root volume."
+			echo -n "> "
+			read rootvolume
+			echo ""
 
-	disktowrite="/dev/$rootvolume"
+			if [ "$firmware" == "UEFI" ]; then
+				echo "Enter the volume that you would like Indigo to use as the EFI volume."
+				echo -n "> "
+				read bootvolume
+				echo ""
+			else
+				echo "Enter the volume that you would like Indigo to use as the boot volume, if any (leave blank if none)."
+				echo -n "> "
+				read bootvolume
+				echo ""
+			fi
+			
+			echo "Enter the volume that you would like Indigo to use as the swap volume, if any (leave blank if none)."
+			echo -n "> "
+			read swapvolume
+			echo ""
+			echo "Are you sure you want to install Indigo? (Y/n)"
 
-	# mount disks
-	inlog $D "mounting disks..."
+			if ! yesno ; then
+				echo "Redo the partitioning, or abort the installation?"
+				echo ""
+				echo "1) Redo partitioning"
+				echo "2) Abort installation"
+				echo -n "> "
+				read redochoice
 
-	mount $disktowrite /mnt
+				if [ "$redochoice" == "2" ]; then
+					echo "Aborting installation..."
+					exit 1
+				else
+					continue
+				fi
+			fi
+		done
 
-	# bios
-	if [ "$firmware" == "BIOS" ]; then
+		# format disks
+		inlog $D "formatting disks..."
+
+		# root
+		mkfs.btrfs /dev/$rootvolume
+
+		# boot
 		if [ -n "$bootvolume" ]; then
-			mkdir -p /mnt/boot
-			mount /dev/$bootvolume /mnt/boot
+			mkfs.fat -F 32 /dev/$bootvolume
 		fi
-	fi
 
-	# uefi
-	if [ "$firmware" == "UEFI" ]; then
-		mkdir -p /mnt/boot/efi
-		mount /dev/$bootvolume /mnt/boot/efi
-	fi
+		# swap
+		if [ -n "$swapvolume" ]; then
+			mkswap /dev/$swapvolume
+		fi
 
-	if [ -n "$swapvolume" ]; then
-		swapon /dev/$swapvolume
-	fi
+		# disktowrite = parent disk
+		disktowrite=$(echo $rootvolume | sed 's/[0-9]//g')
 
-fi
+		# mount disks
+		inlog $D "mounting disks..."
+
+		mount /dev/$rootvolume /mnt
+
+		# bios
+		if [ "$firmware" == "BIOS" ]; then
+			if [ -n "$bootvolume" ]; then
+				mkdir -p /mnt/boot
+				mount /dev/$bootvolume /mnt/boot
+			fi
+		fi
+
+		# uefi
+		if [ "$firmware" == "UEFI" ]; then
+			mkdir -p /mnt/boot/efi
+			mount /dev/$bootvolume /mnt/boot/efi
+		fi
+
+		# swap
+		if [ -n "$swapvolume" ]; then
+			swapon /dev/$swapvolume
+		fi
+
+		break
+	else
+		inlog $D "invalid option"
+		echo "Error: Invalid option."
+	fi
+done
 
 inlog $D "installing base packages..."
 
@@ -448,7 +854,7 @@ inlog $D "installing base packages..."
 packages=(
 	"base"
 	"base-devel"
-	"bash"
+	"fish"
 	"linux"
 	"linux-firmware"
 	"sudo"
@@ -466,7 +872,6 @@ packages=(
 	"noto-fonts"
 	"cantarell-fonts"
 	"mesa"
-	"nvidia-open-dkms"
 )
 
 # add efibootmgr if using UEFI
@@ -512,6 +917,10 @@ arch-chroot /mnt bash -c "hwclock --systohc"
 # set locale
 inlog $D "setting locale to $locale..."
 arch-chroot /mnt bash -c "sed -i 's/#$locale.UTF-8 UTF-8/$locale.UTF-8 UTF-8/' /etc/locale.gen"
+
+# set keyboard layout
+inlog $D "setting keyboard layout to $keyboardlayout..."
+arch-chroot /mnt bash -c "echo KEYMAP=$keyboardlayout > /etc/vconsole.conf"
 
 # set hostname
 inlog $D "setting hostname to $hostname..."
@@ -588,6 +997,56 @@ if [ -f "/etc/indigo-installer/preset/$preset/services" ]; then
 	done
 fi
 
+# copy NetworkManager folder
+inlog $D "copying NetworkManager folder..."
+cp -rf /etc/NetworkManager/* /mnt/etc/NetworkManager/
+
+# copy systemd network folder
+inlog $D "copying systemd network folder..."
+cp -rf /etc/systemd/network/* /mnt/etc/systemd/network/
+
+if ! [ "$wifiinterface" == "" ]; then
+	# predict the new wi-fi interface name using lspci output
+	# name is 'wlpXsY' where X is the bus number and Y is the device number
+	# this is needed because the interface name will change after reboot
+
+	# find network controller
+	lscpioutput=$(lspci | grep -A2 "Network controller")
+
+	# get bus number, this is the first 2 characters
+	busnumber=$(echo $lscpioutput | cut -c1-2)
+
+	# get device number, this is the 4th and 5th characters
+	devicenumber=$(echo $lscpioutput | cut -c4-5)
+
+	# convert both from hex to decimal
+	busnumber=$(printf "%d" 0x$busnumber)
+	devicenumber=$(printf "%d" 0x$devicenumber)
+
+	# set new interface name, wlpXsY
+	newinterface="wlp$busnumber"s"$devicenumber"
+
+	# rename old interface to new interface in /etc/NetworkManager/system-connections
+	inlog $D "renaming $wifiinterface to $newinterface in system-connections..."
+	arch-chroot /mnt bash -c "sed -i 's/$wifiinterface/$newinterface/g' /etc/NetworkManager/system-connections/*"
+else
+	# predict the new ethernet interface name using lspci output
+	lscpioutput=$(lspci | grep -A2 "Ethernet controller")
+
+	# get bus number, this is the first 2 characters
+	busnumber=$(echo $lscpioutput | cut -c1-2)
+
+	# get device number, this is the 4th and 5th characters
+	devicenumber=$(echo $lscpioutput | cut -c4-5)
+
+	# convert both from hex to decimal
+	busnumber=$(printf "%d" 0x$busnumber)
+	devicenumber=$(printf "%d" 0x$devicenumber)
+
+	# set new interface name, enpXsY
+	newinterface="enp$busnumber"s"$devicenumber"
+fi
+
 # add plymouth to mkinitcpio hooks
 inlog $D "adding plymouth to mkinitcpio hooks..."
 arch-chroot /mnt bash -c "sed -i 's/^HOOKS=(base udev/HOOKS=(base udev plymouth/' /etc/mkinitcpio.conf"
@@ -604,7 +1063,7 @@ arch-chroot /mnt bash -c "plymouth-set-default-theme -R catppuccin-mocha"
 if [ -f "/etc/indigo-installer/preset/$preset/setup.sh" ]; then
 	inlog $D "running $preset setup script..."
 	chmod +x /etc/indigo-installer/preset/$preset/setup.sh
-	bash /etc/indigo-installer/preset/$preset/setup.sh $username
+	bash /etc/indigo-installer/preset/$preset/setup.sh $username $newinterface
 fi
 
 # chown /home/$username

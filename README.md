@@ -18,7 +18,8 @@ sudo pacman -S archiso
 
 Clone this repository
 ```
-git clone https://github.com/megabyte112/indigo.git && cd indigo
+git clone https://github.com/megabyte112/indigo.git
+cd indigo
 ```
 
 Use the `mkindiso` script to compile
@@ -26,3 +27,10 @@ Use the `mkindiso` script to compile
 ./mkindiso
 ```
 
+The ISO file, as well as its SHA-512 checksum, will appear in the `out` folder.
+
+To verify the checksum,
+```
+cd out
+sha512sum -c indigo-XXXX-XX-XX-XX-XX-XX-x86_64.iso.sha512sum
+```
