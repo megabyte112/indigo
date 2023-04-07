@@ -1030,8 +1030,21 @@ if ! [ "$wifiinterface" == "" ]; then
 	inlog $D "renaming $wifiinterface to $newinterface in system-connections..."
 	arch-chroot /mnt bash -c "sed -i 's/$wifiinterface/$newinterface/g' /etc/NetworkManager/system-connections/*"
 else
-	# get wired interface name
-	newinterface=$(ip link | grep -E "^[0-9]+: e" | cut -d: -f2 | tr -d ' ')
+	# predict the new ethernet interface name using lspci output
+	lscpioutput=$(lspci | grep -A2 "Ethernet controller")
+
+	# get bus number, this is the first 2 characters
+	busnumber=$(echo $lscpioutput | cut -c1-2)
+
+	# get device number, this is the 4th and 5th characters
+	devicenumber=$(echo $lscpioutput | cut -c4-5)
+
+	# convert both from hex to decimal
+	busnumber=$(printf "%d" 0x$busnumber)
+	devicenumber=$(printf "%d" 0x$devicenumber)
+
+	# set new interface name, enpXsY
+	newinterface="enp$busnumber"s"$devicenumber"
 fi
 
 # add plymouth to mkinitcpio hooks
