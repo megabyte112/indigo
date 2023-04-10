@@ -2,10 +2,6 @@
 
 An Arch-based Linux distro, designed to look good right out of the box.
 
-## Development Repository
-
-This repository is private and should not be shared with anyone other than its contributors.
-
 
 ## Building
 
