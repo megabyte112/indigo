@@ -2,6 +2,8 @@
 
 An Arch-based Linux distro, designed to look good right out of the box.
 
+If you're looking for ISO downloads, you can find them [here](https://github.com/megabyte112/Indigo-ISO).
+
 
 ## Building
 
