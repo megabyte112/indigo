@@ -1,3 +1,8 @@
+# CURRENTLY AN ABANDONED PROJECT
+##### So for the moment me and megabyte have abandoned indigo linux and havent bothered to do much with it.
+##### Why? Well he is working and I am in uni, we simply dont have time do continue with this project, it is ofc still avaliable but currently we have no plans to continue with it.
+##### Enjoy it as it is
+
 # Indigo
 
 An Arch-based Linux distro, designed to look good right out of the box.
